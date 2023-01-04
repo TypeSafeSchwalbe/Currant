@@ -22,8 +22,9 @@ class Currant {
         this.run(CURRANT_STD_MATH, "std.math.crn");
         this.run(CURRANT_STD_LOOPS, "std.loops.crn");
         this.run(CURRANT_STD_TYPE_GETTERS, "std.type_getters.crn");
-        this.run(CURRANT_STD_OPTIONS, "std.options.crn");
+        this.run(CURRANT_STD_BOXES, "std.boxes.crn");
         this.run(CURRANT_STD_STRINGS, "std.strings.crn");
+        this.run(CURRANT_STD_TIME, "std.time.crn");
     }
 
     handleError(error) {

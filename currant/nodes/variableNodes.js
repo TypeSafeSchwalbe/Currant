@@ -21,8 +21,7 @@ class CurrantVariableCreateNode extends CurrantNode {
             throw new Error(`unable to create variable - "${this.children[0].src}" is not a type`);
         if(!currantCompareTypes(this.childValue(0).get(), this.childValue(1).type))
             throw new Error(`unable to create variable - "${this.children[1].src}" is not of type "${this.children[0].src}"`);
-        this.block.deleteVariable(this.varName);
-        this.block.setVariable(this.varName, this.childValue(1).copy());
+        this.block.createVariable(this.varName, this.childValue(1).copy());
         return this.block.getVariableRef(this.varName);
     }
 

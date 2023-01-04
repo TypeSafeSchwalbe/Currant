@@ -37,15 +37,15 @@ const CURRANT_STD_STRINGS = `
         };
 
         indexOfJsImpl: fun = f@currantStrIndexOf;
-        indexOf: fun = (string: str, part: str) -> Opt {
-            if(!contains(string, part), <- { -> OptNone(); });
-            -> OptSome(indexOfJsImpl(string, part));
+        indexOf: fun = (string: str, part: str) -> Box {
+            if(!contains(string, part), <- { -> NoneBox(); });
+            -> Box(indexOfJsImpl(string, part));
         };
 
         lastIndexOfJsImpl: fun = f@currantStrLastIndexOf;
-        lastIndexOf: fun = (string: str, part: str) -> Opt {
-            if(!contains(string, part), <- { -> OptNone(); });
-            -> OptSome(lastIndexOfJsImpl(string, part));
+        lastIndexOf: fun = (string: str, part: str) -> Box {
+            if(!contains(string, part), <- { -> NoneBox(); });
+            -> Box(lastIndexOfJsImpl(string, part));
         };
 
         toUpperJsImpl: fun = f@currantToUpper;

@@ -116,8 +116,6 @@ class CurrantBlockNode extends CurrantNode {
         return CurrantBlockNode.staticGetVariableRef(this.variables, this.block, name);
     }
 
-    deleteVariable(name) { this.variables.delete(name); }
-
     static staticSetVariable(variables, parentBlock, name, value) {
         if(!CurrantBlockNode.staticHasVariable(variables, parentBlock, name) || variables.has(name)) { // does not exist in upper scope
             variables.set(name, new CurrantBlockVariableWrapperObject(value));
@@ -127,7 +125,15 @@ class CurrantBlockNode extends CurrantNode {
     }
 
     setVariable(name, value) {
-        return CurrantBlockNode.staticSetVariable(this.variables, this.block, name, value);
+        CurrantBlockNode.staticSetVariable(this.variables, this.block, name, value);
+    }
+
+    static staticCreateVariable(variables, parentBlock, name, value) {
+        variables.set(name, new CurrantBlockVariableWrapperObject(value));
+    }
+
+    createVariable(name, value) {
+        CurrantBlockNode.staticCreateVariable(this.variables, this.block, name, value);
     }
 
 }

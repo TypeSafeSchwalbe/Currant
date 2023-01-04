@@ -140,7 +140,7 @@ class CurrantFunction extends CurrantFunctionInterface {
                 if(paramType !== null && !currantCompareTypes(paramType.get(), paramValue.type))
                     throw new Error(`unable to call function - value for argument "${this.paramNames[paramIndex]}" (index ${paramIndex}) is not of type "${paramTypeNode.src}"`);
                 let paramName = this.paramNames[paramIndex];
-                bodyCopy.variables.set(paramName, new CurrantBlockVariableWrapperObject(paramValue.copy()));
+                bodyCopy.createVariable(paramName, paramValue.copy());
             }
         });
         let resultType = null;

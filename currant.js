@@ -734,8 +734,6 @@ class CurrantBlockNode extends CurrantNode {
         return CurrantBlockNode.staticGetVariableRef(this.variables, this.block, name);
     }
 
-    deleteVariable(name) { this.variables.delete(name); }
-
     static staticSetVariable(variables, parentBlock, name, value) {
         if(!CurrantBlockNode.staticHasVariable(variables, parentBlock, name) || variables.has(name)) { // does not exist in upper scope
             variables.set(name, new CurrantBlockVariableWrapperObject(value));
@@ -745,7 +743,15 @@ class CurrantBlockNode extends CurrantNode {
     }
 
     setVariable(name, value) {
-        return CurrantBlockNode.staticSetVariable(this.variables, this.block, name, value);
+        CurrantBlockNode.staticSetVariable(this.variables, this.block, name, value);
+    }
+
+    static staticCreateVariable(variables, parentBlock, name, value) {
+        variables.set(name, new CurrantBlockVariableWrapperObject(value));
+    }
+
+    createVariable(name, value) {
+        CurrantBlockNode.staticCreateVariable(this.variables, this.block, name, value);
     }
 
 }
@@ -812,8 +818,7 @@ class CurrantVariableCreateNode extends CurrantNode {
             throw new Error(`unable to create variable - "${this.children[0].src}" is not a type`);
         if(!currantCompareTypes(this.childValue(0).get(), this.childValue(1).type))
             throw new Error(`unable to create variable - "${this.children[1].src}" is not of type "${this.children[0].src}"`);
-        this.block.deleteVariable(this.varName);
-        this.block.setVariable(this.varName, this.childValue(1).copy());
+        this.block.createVariable(this.varName, this.childValue(1).copy());
         return this.block.getVariableRef(this.varName);
     }
 
@@ -1527,7 +1532,7 @@ class CurrantFunction extends CurrantFunctionInterface {
                 if(paramType !== null && !currantCompareTypes(paramType.get(), paramValue.type))
                     throw new Error(`unable to call function - value for argument "${this.paramNames[paramIndex]}" (index ${paramIndex}) is not of type "${paramTypeNode.src}"`);
                 let paramName = this.paramNames[paramIndex];
-                bodyCopy.variables.set(paramName, new CurrantBlockVariableWrapperObject(paramValue.copy()));
+                bodyCopy.createVariable(paramName, paramValue.copy());
             }
         });
         let resultType = null;
@@ -2031,6 +2036,108 @@ const CURRANT_STD_MATH = `
             -> randomJsImpl();
         };
 
+        roundJsImpl: fun = f@currantRound;
+        round: fun = (x: ?) -> #x {
+            -> roundJsImpl(#x, x);
+        };
+
+        cbrtJsImpl: fun = f@currantCbrt;
+        cbrt: fun = (x: ?) -> #x {
+            -> cbrtJsImpl(#x, x);
+        };
+
+        ceilJsImpl: fun = f@currantCeil;
+        ceil: fun = (x: ?) -> #x {
+            -> ceilJsImpl(#x, x);
+        };
+
+        floorJsImpl: fun = f@currantFloor;
+        floor: fun = (x: ?) -> #x {
+            -> floorJsImpl(#x, x);
+        };
+
+        logJsImpl: fun = f@currantMathLog;
+        log: fun = (x: ?) -> #x {
+            -> logJsImpl(#x, x);
+        };
+
+        log10JsImpl: fun = f@currantLog10;
+        log10: fun = (x: ?) -> #x {
+            -> log10JsImpl(#x, x);
+        };
+
+        log1pJsImpl: fun = f@currantLog1p;
+        log1p: fun = (x: ?) -> #x {
+            -> log1pJsImpl(#x, x);
+        };
+
+        expJsImpl: fun = f@currantExp;
+        exp: fun = (x: ?) -> #x {
+            -> expJsImpl(#x, x);
+        };
+
+        expm1JsImpl: fun = f@currantExpm1;
+        expm1: fun = (x: ?) -> #x {
+            -> expm1JsImpl(#x, x);
+        };
+
+        sinJsImpl: fun = f@currantSin;
+        sin: fun = (x: ?) -> #x {
+            -> sinJsImpl(#x, x);
+        };
+
+        cosJsImpl: fun = f@currantCos;
+        cos: fun = (x: ?) -> #x {
+            -> cosJsImpl(#x, x);
+        };
+
+        tanJsImpl: fun = f@currantTan;
+        tan: fun = (x: ?) -> #x {
+            -> tanJsImpl(#x, x);
+        };
+
+        asinJsImpl: fun = f@currantAsin;
+        asin: fun = (x: ?) -> #x {
+            -> asinJsImpl(#x, x);
+        };
+
+        acosJsImpl: fun = f@currantAcos;
+        acos: fun = (x: ?) -> #x {
+            -> acosJsImpl(#x, x);
+        };
+
+        atanJsImpl: fun = f@currantAtan;
+        atan: fun = (x: ?) -> #x {
+            -> atanJsImpl(#x, x);
+        };
+
+        sinhJsImpl: fun = f@currantSinh;
+        sinh: fun = (x: ?) -> #x {
+            -> sinhJsImpl(#x, x);
+        };
+
+        coshJsImpl: fun = f@currantCosh;
+        cosh: fun = (x: ?) -> #x {
+            -> coshJsImpl(#x, x);
+        };
+
+        tanhJsImpl: fun = f@currantTanh;
+        tanh: fun = (x: ?) -> #x {
+            -> tanhJsImpl(#x, x);
+        };
+
+        toRadians: fun = (x: ?) -> #x {
+            -> #x~(f64~x * Math.PI / 180f64);
+        };
+        radians: fun = toRadians;
+        rad: fun = toRadians;
+
+        toDegrees: fun = (x: ?) -> #x {
+            -> #x~(f64~x * 180f64 / Math.PI);
+        };
+        degrees: fun = toDegrees;
+        deg: fun = toDegrees;
+
     };
     Math: MathFunctionsType = MathFunctionsType();
 
@@ -2042,22 +2149,115 @@ function currantLen(value) {
     return currantCreateU64(value.length);
 }
 
+function currantMathFunNumCheck(values) {
+    for(let i = 0; i < values.length; i++) {
+        if(typeof values[i] !== "number" && typeof values[i] !== "bigint")
+            throw new Error(`parameter at index ${i} is not a number`);
+    }
+}
+
 function currantPow(numType, x, n) {
-    if(typeof x !== "number" && typeof x !== "bigint")
-        throw new Error("parameter at index 0 is not a number");
-    if(typeof n !== "number" && typeof n !== "bigint")
-        throw new Error("parameter at index 1 is not a number");
+    currantMathFunNumCheck([x, n]);
     return numType.fromValue(Math.pow(Number(x), Number(n)));
 }
 
 function currantSqrt(numType, x) {
-    if(typeof x !== "number" && typeof x !== "bigint")
-        throw new Error("parameter at index 0 must be a number");
+    currantMathFunNumCheck([x]);
     return numType.fromValue(Math.sqrt(Number(x)));
 }
 
 function currantRandom() {
     return currantCreateF64(Math.random());
+}
+
+function currantRound(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.round(Number(x)));
+}
+
+function currantCbrt(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.cbrt(Number(x)));
+}
+
+function currantCeil(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.ceil(Number(x)));
+}
+
+function currantFloor(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.floor(Number(x)));
+}
+
+function currantMathLog(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.log(Number(x)));
+}
+
+function currantLog10(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.log10(Number(x)));
+}
+
+function currantLog1p(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.log1p(Number(x)));
+}
+
+function currantExp(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.exp(Number(x)));
+}
+
+function currantExpm1(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.expm1(Number(x)));
+}
+
+function currantSin(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.sin(Number(x)));
+}
+
+function currantCos(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.cos(Number(x)));
+}
+
+function currantTan(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.tan(Number(x)));
+}
+
+function currantAsin(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.asin(Number(x)));
+}
+
+function currantAcos(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.acos(Number(x)));
+}
+
+function currantAtan(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.atan(Number(x)));
+}
+
+function currantSinh(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.sinh(Number(x)));
+}
+
+function currantCosh(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.cosh(Number(x)));
+}
+
+function currantTanh(numType, x) {
+    currantMathFunNumCheck([x]);
+    return numType.fromValue(Math.tanh(Number(x)));
 }
 
 
@@ -2129,14 +2329,14 @@ function currantArrayItemType(array) {
 
 
 
-// "currant/defaults/options.js"
+// "currant/defaults/boxes.js"
 
-const CURRANT_STD_OPTIONS = `
+const CURRANT_STD_BOXES = `
 
-    Opt: type = $(val: ptr) {
+    Box: type = $(val: ?) {
 
         getType: fun = () -> type {
-            -> #*val;
+            -> #val;
         };
 
         isSome: fun = () -> bool {
@@ -2147,25 +2347,20 @@ const CURRANT_STD_OPTIONS = `
             -> getType() == none;
         };
 
-        unwrap: fun = () -> #*val {
-            if(isNone(), { panic("Unwrapped a None-Option"); });
-            -> *val;
+        unwrap: fun = () -> #val {
+            if(isNone(), { panic("Unwrapped a None-Box"); });
+            -> val;
         };
 
-        expect: fun = (message: str) -> #*val {
+        expect: fun = (message: str) -> #val {
             if(isNone(), { panic(message); });
-            -> *val;
+            -> val;
         };
 
     };
 
-    OptSome: fun = (val: ?) -> Opt {
-        -> Opt(&val);
-    };
-
-    OptNone: fun = () -> Opt {
-        nothing: none = {}();
-        -> Opt(&nothing);
+    NoneBox: fun = () -> Box {
+        -> Box({}());
     };
 
 `;
@@ -2212,15 +2407,15 @@ const CURRANT_STD_STRINGS = `
         };
 
         indexOfJsImpl: fun = f@currantStrIndexOf;
-        indexOf: fun = (string: str, part: str) -> Opt {
-            if(!contains(string, part), <- { -> OptNone(); });
-            -> OptSome(indexOfJsImpl(string, part));
+        indexOf: fun = (string: str, part: str) -> Box {
+            if(!contains(string, part), <- { -> NoneBox(); });
+            -> Box(indexOfJsImpl(string, part));
         };
 
         lastIndexOfJsImpl: fun = f@currantStrLastIndexOf;
-        lastIndexOf: fun = (string: str, part: str) -> Opt {
-            if(!contains(string, part), <- { -> OptNone(); });
-            -> OptSome(lastIndexOfJsImpl(string, part));
+        lastIndexOf: fun = (string: str, part: str) -> Box {
+            if(!contains(string, part), <- { -> NoneBox(); });
+            -> Box(lastIndexOfJsImpl(string, part));
         };
 
         toUpperJsImpl: fun = f@currantToUpper;
@@ -2299,6 +2494,40 @@ function currantToLower(string) {
 
 function currantTrim(string) {
     return currantCreateStr(string.trim());
+}
+
+
+
+// "currant/defaults/time.js"
+
+const CURRANT_STD_TIME = `
+
+    TimeFunctionsType: type = $() {
+
+        millis: fun = f@currantTimeMillis;
+
+        seconds: fun = f@currantTimeSeconds;
+
+        sleepJsImpl: fun = f@currantSleep;
+        sleep: fun = (timeout: u64) {
+            sleepJsImpl(timeout);
+        };
+
+    };
+    Time: TimeFunctionsType = TimeFunctionsType();
+
+`;
+
+function currantTimeMillis() {
+    return currantCreateU64(Date.now());
+}
+
+function currantTimeSeconds() {
+    return currantCreateU64(Math.floor(Date.now() / 1000));
+}
+
+function currantSleep(timeout) { // timeout is in millis
+    console.log("IMPLEMENT SLEEP (timeout=" + timeout + ")!");
 }
 
 
@@ -2426,8 +2655,9 @@ class Currant {
         this.run(CURRANT_STD_MATH, "std.math.crn");
         this.run(CURRANT_STD_LOOPS, "std.loops.crn");
         this.run(CURRANT_STD_TYPE_GETTERS, "std.type_getters.crn");
-        this.run(CURRANT_STD_OPTIONS, "std.options.crn");
+        this.run(CURRANT_STD_BOXES, "std.boxes.crn");
         this.run(CURRANT_STD_STRINGS, "std.strings.crn");
+        this.run(CURRANT_STD_TIME, "std.time.crn");
     }
 
     handleError(error) {
