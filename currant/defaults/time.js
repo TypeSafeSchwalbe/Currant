@@ -8,8 +8,8 @@ const CURRANT_STD_TIME = `
         seconds: fun = f@currantTimeSeconds;
 
         sleepJsImpl: fun = f@currantSleep;
-        sleep: fun = (timeout: u64) {
-            sleepJsImpl(timeout);
+        sleepAsync: fun = (action: fun, timeout: u64) {
+            sleepJsImpl(action, timeout);
         };
 
     };
@@ -25,6 +25,6 @@ function currantTimeSeconds() {
     return currantCreateU64(Math.floor(Date.now() / 1000));
 }
 
-function currantSleep(timeout) { // timeout is in millis
-    console.log("IMPLEMENT SLEEP (timeout=" + timeout + ")!");
+function currantSleep(func, timeout) { // timeout is in millis
+    setTimeout(func, Number(timeout));
 }

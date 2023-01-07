@@ -58,12 +58,10 @@ class CurrantBlockNode extends CurrantNode {
 
     execute() {
         this.executeChildren = true;
-        if(typeof this.prepareExecute === "function") this.prepareExecute();
+        this.prepareExecute();
         this.childValues = new Array(this.children.length);
         for(let childIndex = 0; childIndex < this.children.length; childIndex++) {
             if(!this.executeChildren) break;
-            this.currant.currentLine = this.line;
-            this.currant.currentFile = this.file;
             this.childValues[childIndex] = this.children[childIndex].execute();
         }
         return this.doExecute();

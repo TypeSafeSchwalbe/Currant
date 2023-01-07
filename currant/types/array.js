@@ -66,6 +66,21 @@ class CurrantArrayType extends CurrantType {
         values.ref = instance;
         return values;
     }
+    eq(a, b) {
+        if(!currantCompareTypes(a.itemType.get(), b.itemType.get())) return false;
+        if(a.values.length !== b.values.length) return false;
+        for(let index = 0; index < a.values.length; index++) {
+            if(!a.values[index].equals(b.values[index])) return false;
+        }
+        return true;
+    }
+    copy(value) {
+        let newValues = new Array(value.values.length);
+        for(let index = 0; index < value.values.length; index++) {
+            newValues[index] = value.values[index].copy();
+        }
+        return new CurrantArray(value.itemType, newValues);
+    }
 }
 
 class CurrantArray {

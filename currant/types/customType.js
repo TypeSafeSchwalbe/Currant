@@ -30,6 +30,18 @@ class CurrantCustomType extends CurrantType {
         return new CurrantCustomObject(value);
     }
 
+    eq(a, b) {
+        for(const varName of a.variables.keys()) {
+            if(!b.variables.has(varName)) return false;
+            if(!b.variables.get(varName).get().equals(a.variables.get(varName).get())) return false;
+        }
+        for(const varName of b.variables.keys()) {
+            if(!a.variables.has(varName)) return false;
+            if(!a.variables.get(varName).get().equals(b.variables.get(varName).get())) return false;
+        }
+        return true;
+    }
+
     val(instance) {
         let convertedObject = {};
         for(const variableName of instance.variables.keys()) {
@@ -51,6 +63,8 @@ class CurrantCustomObject {
 
     constructor(data) {
         this.variables = new Map(data.variables);
+        for(const key of this.variables.keys())
+            this.variables.set(key, new CurrantBlockVariableWrapperObject(this.variables.get(key).get().copy()));
         this.block = data.block;
     }
 

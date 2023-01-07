@@ -1,2 +1,4 @@
 
 log("Hello, Currant!");
+
+test: Map = Map(str, i32);

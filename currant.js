@@ -356,7 +356,7 @@ class CurrantNode {
             CurrantPointerNode,
             CurrantFunctionNode,
             CurrantArrayNode,
-            CurrantVariableType,
+            CurrantGetType,
             CurrantCastNumberNode,
             CurrantParenthesesNode,
             CurrantNegateBooleanNode,
@@ -414,13 +414,15 @@ class CurrantNode {
         this.tokens = tokens;
         this.tokenIndex = 0;
         this.children = [];
-        this.doParse();
         this.line = null;
         this.file = null;
         if(this.tokens.length > 0) {
             this.line = this.tokens[0].line;
             this.file = this.tokens[0].file;
+            this.tokens[0].currant.currentLine = this.line;
+            this.tokens[0].currant.currentFile = this.file;
         }
+        this.doParse();
         this.src = "";
         for(const token of this.tokens) this.src += token.text;
         delete this.tokens;
@@ -601,6 +603,8 @@ class CurrantNode {
     }
 
     execute() {
+        this.block.currant.currentLine = this.line;
+        this.block.currant.currentFile = this.file;
         this.executeChildren = true;
         if(typeof this.prepareExecute === "function") this.prepareExecute();
         this.childValues = new Array(this.children.length);
@@ -676,12 +680,10 @@ class CurrantBlockNode extends CurrantNode {
 
     execute() {
         this.executeChildren = true;
-        if(typeof this.prepareExecute === "function") this.prepareExecute();
+        this.prepareExecute();
         this.childValues = new Array(this.children.length);
         for(let childIndex = 0; childIndex < this.children.length; childIndex++) {
             if(!this.executeChildren) break;
-            this.currant.currentLine = this.line;
-            this.currant.currentFile = this.file;
             this.childValues[childIndex] = this.children[childIndex].execute();
         }
         return this.doExecute();
@@ -853,25 +855,6 @@ class CurrantVariableGetNode extends CurrantLiteralNode {
 
     doExecute() {
         return this.block.getVariableRef(this.value);
-    }
-
-}
-
-class CurrantVariableType extends CurrantNode {
-
-    constructor() { super("variable-type"); }
-
-    doParse() {
-        super.expectToken("hashtag");
-        super.nextToken();
-        super.addChild(super.evalUntil(null, false, false));
-        super.expectEnd();
-    }
-
-    doExecute() {
-        if(!(this.childValues[0] instanceof CurrantVariableReference))
-            throw new Error(`unable to get variable type - "${this.children[0].src}" is not a variable`);
-        return new CurrantTypeType().fromValue(this.childValues[0].get().type);
     }
 
 }
@@ -1182,6 +1165,27 @@ class CurrantParenthesesNode extends CurrantNode {
 
 
 
+// "currant/nodes/getType.js"
+
+class CurrantGetType extends CurrantNode {
+
+    constructor() { super("get-type"); }
+
+    doParse() {
+        super.expectToken("hashtag");
+        super.nextToken();
+        super.addChild(super.evalUntil(null, false, false));
+        super.expectEnd();
+    }
+
+    doExecute() {
+        return new CurrantTypeType().fromValue(this.childValue(0).type);
+    }
+
+}
+
+
+
 // "currant/types/types.js"
 
 class CurrantInvalidValueError extends Error {
@@ -1481,6 +1485,13 @@ class CurrantFunctionType extends CurrantType {
         value.ref = instance;
         return value;
     }
+    eq(a, b) {
+        if(typeof a.ref !== "undefined" && typeof b.ref !== "undefined")
+            return a.ref === b.ref;
+        if(typeof a.body !== "undefined" && typeof b.body !== "undefined")
+            return a.body.src === b.body.src && a.body.file === b.body.file && a.body.line === b.body.line;
+        return false;
+    }
 }
 
 class CurrantFunctionInterface {
@@ -1499,7 +1510,6 @@ class CurrantFunction extends CurrantFunctionInterface {
         this.file = functionNode.file;
         this.line = functionNode.line;
         this.body = functionNode.children[0];
-        this.body.prepareExecute();
         this.returnType = null;
         this.lastCallBody = null;
         let paramNodesOffset = 1;
@@ -1790,6 +1800,21 @@ class CurrantArrayType extends CurrantType {
         values.ref = instance;
         return values;
     }
+    eq(a, b) {
+        if(!currantCompareTypes(a.itemType.get(), b.itemType.get())) return false;
+        if(a.values.length !== b.values.length) return false;
+        for(let index = 0; index < a.values.length; index++) {
+            if(!a.values[index].equals(b.values[index])) return false;
+        }
+        return true;
+    }
+    copy(value) {
+        let newValues = new Array(value.values.length);
+        for(let index = 0; index < value.values.length; index++) {
+            newValues[index] = value.values[index].copy();
+        }
+        return new CurrantArray(value.itemType, newValues);
+    }
 }
 
 class CurrantArray {
@@ -1865,6 +1890,18 @@ class CurrantCustomType extends CurrantType {
         return new CurrantCustomObject(value);
     }
 
+    eq(a, b) {
+        for(const varName of a.variables.keys()) {
+            if(!b.variables.has(varName)) return false;
+            if(!b.variables.get(varName).get().equals(a.variables.get(varName).get())) return false;
+        }
+        for(const varName of b.variables.keys()) {
+            if(!a.variables.has(varName)) return false;
+            if(!a.variables.get(varName).get().equals(b.variables.get(varName).get())) return false;
+        }
+        return true;
+    }
+
     val(instance) {
         let convertedObject = {};
         for(const variableName of instance.variables.keys()) {
@@ -1886,6 +1923,8 @@ class CurrantCustomObject {
 
     constructor(data) {
         this.variables = new Map(data.variables);
+        for(const key of this.variables.keys())
+            this.variables.set(key, new CurrantBlockVariableWrapperObject(this.variables.get(key).get().copy()));
         this.block = data.block;
     }
 
@@ -2315,20 +2354,6 @@ function currantLoop(action) {
 
 
 
-// "currant/defaults/typeGetters.js"
-
-const CURRANT_STD_TYPE_GETTERS = `
-    arrType: fun = f@currantArrayItemType;
-`;
-
-function currantArrayItemType(array) {
-    if(typeof array.ref === "undefined" || !(array.ref instanceof CurrantArray))
-        throw new Error("parameter at index 0 is not an array");
-    return array.ref.itemType;
-}
-
-
-
 // "currant/defaults/boxes.js"
 
 const CURRANT_STD_BOXES = `
@@ -2374,10 +2399,16 @@ const CURRANT_STD_STRINGS = `
     StringFunctionsType: type = $() {
 
         toString: fun = f@currantToString;
+        strOf: fun = toString;
+
+        containsNum: fun = f@currantContainsNum;
 
         parseNumJsImpl: fun = f@currantParseNum;
-        parseNum: fun = (numType: type, string: str) -> numType {
-            -> parseNumJsImpl(numType, string);
+        parseNum: fun = (numType: type, string: str) -> Box {
+            if(!containsNum(string), <- {
+                -> NoneBox();
+            });
+            -> Box(parseNumJsImpl(numType, string));
         };
 
         subStrJsImpl: fun = f@currantSubstr;
@@ -2456,6 +2487,11 @@ function currantArrayToString(array) {
     return currantCreateStr(result.substring(0, result.length - 2) + "]");
 }
 
+function currantContainsNum(string) {
+    if(string.length === 0) return currantCreateBool(false);
+    return currantCreateBool(!isNaN(string));
+}
+
 function currantParseNum(numType, string) {
     return numType.fromValue(string);
 }
@@ -2509,8 +2545,8 @@ const CURRANT_STD_TIME = `
         seconds: fun = f@currantTimeSeconds;
 
         sleepJsImpl: fun = f@currantSleep;
-        sleep: fun = (timeout: u64) {
-            sleepJsImpl(timeout);
+        sleepAsync: fun = (action: fun, timeout: u64) {
+            sleepJsImpl(action, timeout);
         };
 
     };
@@ -2526,9 +2562,154 @@ function currantTimeSeconds() {
     return currantCreateU64(Math.floor(Date.now() / 1000));
 }
 
-function currantSleep(timeout) { // timeout is in millis
-    console.log("IMPLEMENT SLEEP (timeout=" + timeout + ")!");
+function currantSleep(func, timeout) { // timeout is in millis
+    setTimeout(func, Number(timeout));
 }
+
+
+
+// "currant/defaults/arrays.js"
+
+const CURRANT_STD_ARRAYS = `
+
+    ArrayFunctionsType: type = $() {
+
+        itemType: fun = f@currantArrayItemType;
+
+        reverse: fun = (src: arr) -> arr {
+            if(len(src) == 0u64, <- { -> [itemType(src): 0u64, 0u8]; });
+            dest: arr = [itemType(src): len(src): src[0u64]];
+            for(range(0u64, len(src)), (i: u64) -> lpa {
+                dest[len(src) - 1u64 - i] = src[i];
+                -> cont;
+            });
+            -> dest;
+        };
+        rev: fun = reverse;
+
+        copyRange: fun = (src: arr, start: u64, end: u64) -> arr {
+            destLength: u64 = Math.max(start, end) - Math.min(start, end);
+            if(destLength == 0u64, <- { -> [itemType(src): 0u64: 0u8]; });
+            dest: arr = [itemType(src): destLength: src[0u64]];
+            destIndex: u64 = 0u64;
+            for(range(start, end), (srcIndex: u64) -> lpa {
+                dest[destIndex] = src[srcIndex];
+                destIndex = destIndex + 1u64;
+                -> cont;
+            });
+            -> dest;
+        };
+
+        copyInto: fun = (src: arr, srcStart: u64, dest: arr, destStart: u64, elements: u64) {
+            for(range(0u64, elements), (i: u64) -> lpa {
+                dest[destStart + i] = src[srcStart + i];
+                -> cont;
+            });
+        };
+
+        addAt: fun = (src: arr, index: u64, item: itemType(src)) -> arr {
+            dest: arr = [itemType(src): len(src) + 1u64: item];
+            copyInto(src, 0u64, dest, 0u64, index);
+            dest[index] = item;
+            copyInto(src, index, dest, index + 1u64, len(src) - index);
+            -> dest;
+        };
+
+        add: fun = (src: arr, item: itemType(src)) -> arr {
+            -> addAt(src, len(src), item);
+        };
+
+        append: fun = (src: arr, items: arr) -> arr {
+            if(itemType(src) != itemType(items), { panic("item types of the given arrays do not match"); });
+            if(len(src) == 0u64, <- { -> items; });
+            if(len(items) == 0u64, <- { -> src; });
+            dest: arr = [itemType(src): len(src) + len(items): src[0u64]];
+            copyInto(src, 0u64, dest, 0u64, len(src));
+            copyInto(items, 0u64, dest, len(src), len(items));
+            -> dest;
+        };
+
+        indexOf: fun = (src: arr, item: itemType(src)) -> Box {
+            result: Box = NoneBox();
+            for(reverse(range(0u64, len(src))), (i: u64) -> lpa {
+                if(src[i] == item, { result = Box(i); });
+                -> cont;
+            });
+            -> result;
+        };
+
+        lastIndexOf: fun = (src: arr, item: itemType(src)) -> Box {
+            result: Box = NoneBox();
+            for(range(0u64, len(src)), (i: u64) -> lpa {
+                if(src[i] == item, { result = Box(i); });
+                -> cont;
+            });
+            -> result;
+        };
+
+        contains: fun = (src: arr, item: itemType(src)) -> bool {
+            -> indexOf(src, item).isSome();
+        };
+
+        containsAll: fun = (src: arr, items: arr) -> bool {
+            if(itemType(src) != itemType(items), { panic("item types of the given arrays do not match"); });
+            if(len(items) == 0u64, <- { -> true; });
+            if(len(src) == 0u64, <- { -> false; });
+            notFound: bool = false;
+            for(items, (item: itemType(items)) -> lpa {
+                if(!contains(src, item), <- {
+                    notFound = true;
+                    -> brk;
+                });
+                -> cont;
+            });
+            -> !notFound;
+        };
+
+        removeAt: fun = (src: arr, index: u64) -> arr {
+            if(len(src) == 0u64, { panic("given array is already empty"); });
+            dest: arr = [itemType(src): len(src) - 1u64: src[0u64]];
+            copyInto(src, 0u64, dest, 0u64, index);
+            copyInto(src, index + 1u64, dest, index, len(dest) - index);
+            -> dest;
+        };
+
+        remove: fun = (src: arr, item: itemType(src)) -> arr {
+            removalIndex: Box = indexOf(src, item);
+            if(removalIndex.isNone(), <- { -> src; });
+            -> removeAt(src, removalIndex.unwrap());
+        };
+
+        removeLast: fun = (src: arr, item: itemType(src)) -> arr {
+            removalIndex: Box = lastIndexOf(src, item);
+            if(removalIndex.isNone(), <- { -> src; });
+            -> removeAt(src, removalIndex.unwrap());
+        };
+
+    };
+    Array: ArrayFunctionsType = ArrayFunctionsType();
+
+`;
+
+function currantArrayItemType(array) {
+    if(typeof array.ref === "undefined" || !(array.ref instanceof CurrantArray))
+        throw new Error("parameter at index 0 is not an array");
+    return array.ref.itemType;
+}
+
+
+
+// "currant/defaults/maps.js"
+
+const CURRANT_STD_MAPS = `
+
+    Map: type = $(keyType: type, valType: type) {
+
+
+
+    };
+
+`;
 
 
 
@@ -2588,22 +2769,18 @@ class CurrantScriptLoader {
     execute() {
         if(this.queue.length === 0 || this.running) return;
         this.running = true;
-        let source = this.queue[0].text;
-        if(typeof this.queue[0].file !== "undefined") {
-            let fileRequest = fetch(this.queue[0].file).then(response => {
-                if(response.status === 200) return response.text();
-                else throw new Error(`[${response.status}] ${response.statusText}`);
-            }).then(scriptText => {
-                currant.run(scriptText, this.queue[0].file);
-            }).catch(error => {
-                currant.handleError(error);
-            }).finally(() => {
-                this.finishExecute();
-            });
-        } else {
-            currant.run(source, "(html currant-script element)");
+        currant.currentFile = this.queue[0];
+        currant.currentLine = 0;
+        let fileRequest = fetch(this.queue[0]).then(response => {
+            if(response.status === 200) return response.text();
+            else throw new Error(`[${response.status}] ${response.statusText}`);
+        }).then(scriptText => {
+            currant.run(scriptText, this.queue[0]);
+        }).catch(error => {
+            currant.handleError(error);
+        }).finally(() => {
             this.finishExecute();
-        }
+        });
     }
 
     finishExecute() {
@@ -2613,16 +2790,7 @@ class CurrantScriptLoader {
     }
 
     queueFile(fileName) {
-        this.queue.push({
-            file: fileName
-        });
-        if(!this.running) this.execute();
-    }
-
-    queueText(source) {
-        this.queue.push({
-            text: source
-        });
+        this.queue.push(fileName);
         if(!this.running) this.execute();
     }
 
@@ -2654,10 +2822,11 @@ class Currant {
         this.run(CURRANT_STD_CONDITIONS, "std.conditions.crn");
         this.run(CURRANT_STD_MATH, "std.math.crn");
         this.run(CURRANT_STD_LOOPS, "std.loops.crn");
-        this.run(CURRANT_STD_TYPE_GETTERS, "std.type_getters.crn");
         this.run(CURRANT_STD_BOXES, "std.boxes.crn");
         this.run(CURRANT_STD_STRINGS, "std.strings.crn");
         this.run(CURRANT_STD_TIME, "std.time.crn");
+        this.run(CURRANT_STD_ARRAYS, "std.arrays.crn");
+        this.run(CURRANT_STD_MAPS, "std.maps.crn");
     }
 
     handleError(error) {
@@ -2669,10 +2838,15 @@ class Currant {
         this.stack.clear();
         try {
             if(typeof fileName === "undefined") fileName = null;
+            // preprocessor
             let processedText = this.preprocessor.process(scriptText);
+            // lexer
             let tokens = this.lexer.tokenize(processedText, fileName);
+            for(const token of tokens) token.currant = this; // attach runtime reference to tokens (for errors during parsing)
+            // parsing
             let blockNode = new CurrantBlockNode().setRuntime(this).parse(tokens);
             blockNode.block = this.lastBlockNode;
+            // execution
             let executeResult = blockNode.execute();
             this.lastBlockNode = blockNode;
             if(executeResult === null) return executeResult;

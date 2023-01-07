@@ -1,0 +1,51 @@
+
+log("Hello, Currant Array Tests!");
+// -> Hello, Currant Array Tests!
+
+log(Array.rev(range(0u64, 10u64)));
+// -> [array: 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+
+a: arr = [i32: 0i32, 1i32, 2i32, 3i32, 4i32];
+log(a);
+// -> [array: 0, 1, 2, 3, 4]
+
+b: arr = Array.copyRange(a, 0u64, 4u64);
+log(b);
+// -> [array: 0, 1, 2, 3]
+
+c: arr = Array.copy(b);
+Array.copyInto(a, 2u64, c, 0u64, 3u64);
+log(c);
+// -> [array: 2, 3, 4, 3]
+
+d: arr = Array.add(c, 69i32);
+log(d);
+// -> [array: 2, 3, 4, 3, 69]
+
+e: arr = Array.append(d, [i32: 0i32, 1i32, 2i32]);
+log(e);
+// -> [array: 2, 3, 4, 3, 69, 0, 1, 2]
+
+log(Array.indexOf(e, 2i32).unwrap());
+// -> 0
+log(Array.lastIndexOf(e, 2i32).unwrap());
+// -> 7
+
+log(Array.contains(e, 2i32));
+// -> true
+log(Array.contains(e, 9i32));
+// -> false
+
+log(Array.containsAll(e, [i32: 0i32, 1i32, 2i32]));
+// -> true
+log(Array.containsAll(e, [i32: 0i32, 1i32, 2i32, 9i32]));
+// -> false
+
+f: arr = Array.removeAt(e, 3u64);
+log(f);
+// -> [array: 2, 3, 4, 69, 0, 1, 2]
+
+log(Array.remove(f, 2i32));
+// -> [array: 3, 4, 69, 0, 1, 2]
+log(Array.removeLast(f, 2i32));
+// -> [array: 2, 3, 4, 69, 0, 1]

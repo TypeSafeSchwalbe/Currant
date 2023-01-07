@@ -23,7 +23,7 @@ class CurrantNode {
             CurrantPointerNode,
             CurrantFunctionNode,
             CurrantArrayNode,
-            CurrantVariableType,
+            CurrantGetType,
             CurrantCastNumberNode,
             CurrantParenthesesNode,
             CurrantNegateBooleanNode,
@@ -81,13 +81,15 @@ class CurrantNode {
         this.tokens = tokens;
         this.tokenIndex = 0;
         this.children = [];
-        this.doParse();
         this.line = null;
         this.file = null;
         if(this.tokens.length > 0) {
             this.line = this.tokens[0].line;
             this.file = this.tokens[0].file;
+            this.tokens[0].currant.currentLine = this.line;
+            this.tokens[0].currant.currentFile = this.file;
         }
+        this.doParse();
         this.src = "";
         for(const token of this.tokens) this.src += token.text;
         delete this.tokens;
@@ -268,6 +270,8 @@ class CurrantNode {
     }
 
     execute() {
+        this.block.currant.currentLine = this.line;
+        this.block.currant.currentFile = this.file;
         this.executeChildren = true;
         if(typeof this.prepareExecute === "function") this.prepareExecute();
         this.childValues = new Array(this.children.length);

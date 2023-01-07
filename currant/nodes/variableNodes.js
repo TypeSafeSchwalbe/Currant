@@ -59,22 +59,3 @@ class CurrantVariableGetNode extends CurrantLiteralNode {
     }
 
 }
-
-class CurrantVariableType extends CurrantNode {
-
-    constructor() { super("variable-type"); }
-
-    doParse() {
-        super.expectToken("hashtag");
-        super.nextToken();
-        super.addChild(super.evalUntil(null, false, false));
-        super.expectEnd();
-    }
-
-    doExecute() {
-        if(!(this.childValues[0] instanceof CurrantVariableReference))
-            throw new Error(`unable to get variable type - "${this.children[0].src}" is not a variable`);
-        return new CurrantTypeType().fromValue(this.childValues[0].get().type);
-    }
-
-}

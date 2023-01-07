@@ -89,6 +89,13 @@ class CurrantFunctionType extends CurrantType {
         value.ref = instance;
         return value;
     }
+    eq(a, b) {
+        if(typeof a.ref !== "undefined" && typeof b.ref !== "undefined")
+            return a.ref === b.ref;
+        if(typeof a.body !== "undefined" && typeof b.body !== "undefined")
+            return a.body.src === b.body.src && a.body.file === b.body.file && a.body.line === b.body.line;
+        return false;
+    }
 }
 
 class CurrantFunctionInterface {
@@ -107,7 +114,6 @@ class CurrantFunction extends CurrantFunctionInterface {
         this.file = functionNode.file;
         this.line = functionNode.line;
         this.body = functionNode.children[0];
-        this.body.prepareExecute();
         this.returnType = null;
         this.lastCallBody = null;
         let paramNodesOffset = 1;

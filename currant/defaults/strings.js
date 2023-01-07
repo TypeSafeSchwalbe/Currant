@@ -4,10 +4,16 @@ const CURRANT_STD_STRINGS = `
     StringFunctionsType: type = $() {
 
         toString: fun = f@currantToString;
+        strOf: fun = toString;
+
+        containsNum: fun = f@currantContainsNum;
 
         parseNumJsImpl: fun = f@currantParseNum;
-        parseNum: fun = (numType: type, string: str) -> numType {
-            -> parseNumJsImpl(numType, string);
+        parseNum: fun = (numType: type, string: str) -> Box {
+            if(!containsNum(string), <- {
+                -> NoneBox();
+            });
+            -> Box(parseNumJsImpl(numType, string));
         };
 
         subStrJsImpl: fun = f@currantSubstr;
@@ -84,6 +90,11 @@ function currantArrayToString(array) {
         result += currantToString(element).get() + ", ";
     }
     return currantCreateStr(result.substring(0, result.length - 2) + "]");
+}
+
+function currantContainsNum(string) {
+    if(string.length === 0) return currantCreateBool(false);
+    return currantCreateBool(!isNaN(string));
 }
 
 function currantParseNum(numType, string) {
