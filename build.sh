@@ -12,6 +12,7 @@ currant/nodes/booleanLogic.js \
 currant/nodes/numberOperations.js \
 currant/nodes/comparisons.js \
 currant/nodes/parentheses.js \
+currant/nodes/getType.js \
 currant/types/types.js \
 currant/types/unsignedIntegers.js \
 currant/types/signedIntegers.js \
@@ -28,9 +29,11 @@ currant/defaults/console.js \
 currant/defaults/conditions.js \
 currant/defaults/math.js \
 currant/defaults/loops.js \
-currant/defaults/typeGetters.js \
-currant/defaults/options.js \
+currant/defaults/boxes.js \
 currant/defaults/strings.js \
+currant/defaults/time.js \
+currant/defaults/arrays.js \
+currant/defaults/dataStructures.js \
 currant/stack.js \
 currant/scriptLoader.js \
 currant/currant.js \

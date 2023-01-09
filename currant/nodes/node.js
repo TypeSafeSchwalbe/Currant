@@ -263,7 +263,7 @@ class CurrantNode {
     }
 
     childValue(index) {
-        if(this.childValues[index] === null) return;
+        if(this.childValues[index] === null) return null;
         if(this.childValues[index] instanceof CurrantVariableReference)
             return this.childValues[index].get();
         return this.childValues[index];
@@ -277,7 +277,8 @@ class CurrantNode {
         this.childValues = new Array(this.children.length);
         for(let childIndex = 0; childIndex < this.children.length; childIndex++) {
             if(!this.executeChildren) break;
-            this.childValues[childIndex] = this.children[childIndex].execute();
+            if(this.children[childIndex] === null) this.childValues[childIndex] = null;
+            else this.childValues[childIndex] = this.children[childIndex].execute();
         }
         return this.doExecute();
     }

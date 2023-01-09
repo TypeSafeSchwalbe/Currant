@@ -38,9 +38,13 @@ const CURRANT_STD_ARRAYS = `
 
         addAt: fun = (src: arr, index: u64, item: itemType(src)) -> arr {
             dest: arr = [itemType(src): len(src) + 1u64: item];
+            log(dest);
             copyInto(src, 0u64, dest, 0u64, index);
+            log(dest);
             dest[index] = item;
+            log(dest);
             copyInto(src, index, dest, index + 1u64, len(src) - index);
+            log(dest);
             -> dest;
         };
 

@@ -25,7 +25,7 @@ class Currant {
         this.run(CURRANT_STD_STRINGS, "std.strings.crn");
         this.run(CURRANT_STD_TIME, "std.time.crn");
         this.run(CURRANT_STD_ARRAYS, "std.arrays.crn");
-        this.run(CURRANT_STD_MAPS, "std.maps.crn");
+        this.run(CURRANT_STD_DATASTRUCTURES, "std.data_structures.crn");
     }
 
     handleError(error) {

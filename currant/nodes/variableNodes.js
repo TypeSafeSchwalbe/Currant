@@ -9,7 +9,10 @@ class CurrantVariableCreateNode extends CurrantNode {
         super.nextToken();
         super.expectToken("colon");
         super.nextToken();
-        super.addChild(super.evalUntil(["equals"], false, false));
+        if(super.token().name === "question_mark") {
+            super.addChild(null);
+            super.nextToken();
+        } else super.addChild(super.evalUntil(["equals"], false, false));
         super.expectToken("equals");
         super.nextToken();
         super.addChild(super.evalUntil(null, false, false));
@@ -17,9 +20,12 @@ class CurrantVariableCreateNode extends CurrantNode {
     }
 
     doExecute() {
-        if(!(this.childValue(0).get() instanceof CurrantType))
+        let variableType = this.childValue(0);
+        if(variableType === null) variableType = this.childValue(1).type;
+        else variableType = variableType.get();
+        if(!(variableType instanceof CurrantType))
             throw new Error(`unable to create variable - "${this.children[0].src}" is not a type`);
-        if(!currantCompareTypes(this.childValue(0).get(), this.childValue(1).type))
+        if(!currantCompareTypes(variableType, this.childValue(1).type))
             throw new Error(`unable to create variable - "${this.children[1].src}" is not of type "${this.children[0].src}"`);
         this.block.createVariable(this.varName, this.childValue(1).copy());
         return this.block.getVariableRef(this.varName);

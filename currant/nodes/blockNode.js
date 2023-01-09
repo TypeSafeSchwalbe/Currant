@@ -127,6 +127,8 @@ class CurrantBlockNode extends CurrantNode {
     }
 
     static staticCreateVariable(variables, parentBlock, name, value) {
+        if(variables.has(name))
+            throw new Error(`unable to create variable - variable "${name}" already exists in this scope`);
         variables.set(name, new CurrantBlockVariableWrapperObject(value));
     }
 

@@ -1,7 +1,10 @@
 
 function currantCompareTypes(a, b) {
-    if(a instanceof CurrantCustomType && b instanceof CurrantCustomType)
-        return a === b;
+    if(a instanceof CurrantCustomType && b instanceof CurrantCustomType) {
+        return a.constructorFunction.file === b.constructorFunction.file
+            && a.constructorFunction.line === b.constructorFunction.line
+            && a.constructorFunction.src === b.constructorFunction.src;
+    }
     return a.constructor === b.constructor;
 }
 

@@ -251,8 +251,11 @@ class CurrantLexer {
 // "currant/types/typeUtils.js"
 
 function currantCompareTypes(a, b) {
-    if(a instanceof CurrantCustomType && b instanceof CurrantCustomType)
-        return a === b;
+    if(a instanceof CurrantCustomType && b instanceof CurrantCustomType) {
+        return a.constructorFunction.file === b.constructorFunction.file
+            && a.constructorFunction.line === b.constructorFunction.line
+            && a.constructorFunction.src === b.constructorFunction.src;
+    }
     return a.constructor === b.constructor;
 }
 
@@ -596,7 +599,7 @@ class CurrantNode {
     }
 
     childValue(index) {
-        if(this.childValues[index] === null) return;
+        if(this.childValues[index] === null) return null;
         if(this.childValues[index] instanceof CurrantVariableReference)
             return this.childValues[index].get();
         return this.childValues[index];
@@ -610,7 +613,8 @@ class CurrantNode {
         this.childValues = new Array(this.children.length);
         for(let childIndex = 0; childIndex < this.children.length; childIndex++) {
             if(!this.executeChildren) break;
-            this.childValues[childIndex] = this.children[childIndex].execute();
+            if(this.children[childIndex] === null) this.childValues[childIndex] = null;
+            else this.childValues[childIndex] = this.children[childIndex].execute();
         }
         return this.doExecute();
     }
@@ -749,6 +753,8 @@ class CurrantBlockNode extends CurrantNode {
     }
 
     static staticCreateVariable(variables, parentBlock, name, value) {
+        if(variables.has(name))
+            throw new Error(`unable to create variable - variable "${name}" already exists in this scope`);
         variables.set(name, new CurrantBlockVariableWrapperObject(value));
     }
 
@@ -808,7 +814,10 @@ class CurrantVariableCreateNode extends CurrantNode {
         super.nextToken();
         super.expectToken("colon");
         super.nextToken();
-        super.addChild(super.evalUntil(["equals"], false, false));
+        if(super.token().name === "question_mark") {
+            super.addChild(null);
+            super.nextToken();
+        } else super.addChild(super.evalUntil(["equals"], false, false));
         super.expectToken("equals");
         super.nextToken();
         super.addChild(super.evalUntil(null, false, false));
@@ -816,9 +825,12 @@ class CurrantVariableCreateNode extends CurrantNode {
     }
 
     doExecute() {
-        if(!(this.childValue(0).get() instanceof CurrantType))
+        let variableType = this.childValue(0);
+        if(variableType === null) variableType = this.childValue(1).type;
+        else variableType = variableType.get();
+        if(!(variableType instanceof CurrantType))
             throw new Error(`unable to create variable - "${this.children[0].src}" is not a type`);
-        if(!currantCompareTypes(this.childValue(0).get(), this.childValue(1).type))
+        if(!currantCompareTypes(variableType, this.childValue(1).type))
             throw new Error(`unable to create variable - "${this.children[1].src}" is not of type "${this.children[0].src}"`);
         this.block.createVariable(this.varName, this.childValue(1).copy());
         return this.block.getVariableRef(this.varName);
@@ -2609,9 +2621,13 @@ const CURRANT_STD_ARRAYS = `
 
         addAt: fun = (src: arr, index: u64, item: itemType(src)) -> arr {
             dest: arr = [itemType(src): len(src) + 1u64: item];
+            log(dest);
             copyInto(src, 0u64, dest, 0u64, index);
+            log(dest);
             dest[index] = item;
+            log(dest);
             copyInto(src, index, dest, index + 1u64, len(src) - index);
+            log(dest);
             -> dest;
         };
 
@@ -2699,15 +2715,16 @@ function currantArrayItemType(array) {
 
 
 
-// "currant/defaults/maps.js"
+// "currant/defaults/dataStructures.js"
 
-const CURRANT_STD_MAPS = `
+const CURRANT_STD_DATASTRUCTURES = `
 
-    Map: type = $(keyType: type, valType: type) {
+    HashMap: type = $(keyType: type, valType: type) {
 
 
 
     };
+    HshMap: type = HashMap;
 
 `;
 
@@ -2826,7 +2843,7 @@ class Currant {
         this.run(CURRANT_STD_STRINGS, "std.strings.crn");
         this.run(CURRANT_STD_TIME, "std.time.crn");
         this.run(CURRANT_STD_ARRAYS, "std.arrays.crn");
-        this.run(CURRANT_STD_MAPS, "std.maps.crn");
+        this.run(CURRANT_STD_DATASTRUCTURES, "std.data_structures.crn");
     }
 
     handleError(error) {
