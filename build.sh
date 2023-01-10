@@ -1,5 +1,6 @@
 
 python3 build.py currant.js \
+currant/license.js \
 currant/parsing/preprocessor.js \
 currant/parsing/lexer.js \
 currant/types/typeUtils.js \
