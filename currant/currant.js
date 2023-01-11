@@ -26,6 +26,7 @@ class Currant {
         this.run(CURRANT_STD_TIME, "std.time.crn");
         this.run(CURRANT_STD_ARRAYS, "std.arrays.crn");
         this.run(CURRANT_STD_DATASTRUCTURES, "std.data_structures.crn");
+        this.run(CURRANT_STD_TESTING, "std.testing.crn");
     }
 
     handleError(error) {
@@ -33,26 +34,46 @@ class Currant {
         if(this.showInterpreterStackTrace) throw error;
     }
 
-    run(scriptText, fileName) {
+    _runInternal(scriptText, fileName) {
         this.stack.clear();
+        if(typeof fileName === "undefined") fileName = null;
+        // preprocessor
+        let processedText = this.preprocessor.process(scriptText);
+        // lexer
+        let tokens = this.lexer.tokenize(processedText, fileName);
+        for(const token of tokens) token.currant = this; // attach runtime reference to tokens (for errors during parsing)
+        // parsing
+        let blockNode = new CurrantBlockNode().setRuntime(this).parse(tokens);
+        blockNode.block = this.lastBlockNode;
+        // execution
+        let executeResult = blockNode.execute();
+        this.lastBlockNode = blockNode;
+        if(executeResult === null) return executeResult;
+        else return executeResult.getValue();
+    }
+
+    run(scriptText, fileName) {
         try {
-            if(typeof fileName === "undefined") fileName = null;
-            // preprocessor
-            let processedText = this.preprocessor.process(scriptText);
-            // lexer
-            let tokens = this.lexer.tokenize(processedText, fileName);
-            for(const token of tokens) token.currant = this; // attach runtime reference to tokens (for errors during parsing)
-            // parsing
-            let blockNode = new CurrantBlockNode().setRuntime(this).parse(tokens);
-            blockNode.block = this.lastBlockNode;
-            // execution
-            let executeResult = blockNode.execute();
-            this.lastBlockNode = blockNode;
-            if(executeResult === null) return executeResult;
-            else return executeResult.getValue();
+            return this._runInternal(scriptText, fileName);
         } catch(error) {
             this.handleError(error);
         }
+    }
+
+    test(scriptText, fileName) {
+        let returnedValue;
+        try {
+            returnedValue = this._runInternal(scriptText, fileName);
+        } catch(error) {
+            console.error(`Test "${fileName}" failed:`);
+            this.handleError(error);
+            return;
+        }
+        console.log(
+            "%c" + `Test "${fileName}" passed!`,
+            "color: #84da72;"
+        );
+        return returnedValue;
     }
 
 }

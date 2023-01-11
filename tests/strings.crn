@@ -1,0 +1,14 @@
+
+assert("Hello," + " World!" == "Hello, World!");
+assert(String.contains("Hello, World!", "Hell"));
+assert(String.containsNum("5"));
+assert(String.endsWith("Hello, World!", "!"));
+assert(String.indexOf("Hello, World!", ",").unwrap() == 5u64);
+assert(String.lastIndexOf("Hello, World!", "l").unwrap() == 10u64);
+assert(String.parseNum(u64, "69").unwrap() == 69u64);
+assert(String.startsWith("Hello, World!", "Hell"));
+assert(String.strOf(69u64) == "69");
+assert(String.subStr("Hello, World!", 1u64, 5u64) == "ello");
+assert(String.toLower("Hello, World!") == "hello, world!");
+assert(String.toUpper("Hello, World!") == "HELLO, WORLD!");
+assert(String.trim("   Hi!   ") == "Hi!");

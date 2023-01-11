@@ -1,0 +1,42 @@
+
+a: arr = [i32: 0u64: none];
+assert(len(a) == 0u64);
+
+a = Array.copyRange([i32: 0i32, 1i32, 2i32, 3i32, 4i32, 5i32, 6i32, 7i32, 8i32], 0u64, 5u64);
+assert(a == [i32: 0i32, 1i32, 2i32, 3i32, 4i32]);
+
+a = Array.copyRange(a, 0u64, 2u64);
+assert(a == [i32: 0i32, 1i32]);
+
+b: arr = [i32: 5i32, 6i32, 7i32, 8i32];
+a = Array.copyIntoCopy(b, 0u64, a, 0u64, 2u64);
+assert(a == [i32: 5i32, 6i32]);
+
+a = Array.add(a, 5i32);
+assert(a == [i32: 5i32, 6i32, 5i32]);
+
+a = Array.add(a, -15i32);
+assert(a == [i32: 5i32, 6i32, 5i32, -15i32]);
+
+a = Array.reverse(a);
+assert(a == [i32: -15i32, 5i32, 6i32, 5i32]);
+
+a = Array.append(a, [i32: 0i32, 1i32]);
+assert(a == [i32: -15i32, 5i32, 6i32, 5i32, 0i32, 1i32]);
+
+assert(Array.indexOf(a, -15i32).unwrap() == 0u64);
+assert(Array.indexOf(a, 5i32).unwrap() == 1u64);
+assert(Array.lastIndexOf(a, 5i32).unwrap() == 3u64);
+assert(Array.lastIndexOf(a, 69i32).isNone());
+
+a = Array.remove(a, 6i32);
+assert(!Array.contains(a, 6i32));
+
+a = Array.removeAt(a, 0u64);
+assert(a == [i32: 5i32, 5i32, 0i32, 1i32]);
+
+a = Array.addAt(a, 1u64, 69i32);
+a = Array.removeLast(a, 5i32);
+assert(a == [i32: 5i32, 69i32, 0i32, 1i32]);
+
+assert(Array.containsAll(a, [i32: 5i32, 69i32, 1i32]));

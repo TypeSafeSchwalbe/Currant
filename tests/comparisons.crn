@@ -1,0 +1,29 @@
+
+a: Box = Box(69u8);
+b: Box = a;
+
+assert(a == b);
+assert(a != log);
+assert(a == Box(69u8));
+assert(a != Box(32u16));
+
+assert(f@currantLog == f@currantLog);
+assert(f@currantLog != f@currantSqrt);
+
+c: arr = [i32: 5u64: 0i32];
+d: arr = c;
+
+assert(c == d);
+assert(c == [i32: 5u64: 0i32]);
+assert(c != [i32: 4u64: 0i32]);
+
+assert("Hello, World!" == "Hello, World!");
+assert("Hello, World!" != "Hello, Currant!");
+assert("I am sentient" != "a proof of sentience");
+
+assert(5u8 < 10u8);
+assert(10u8 < 15u8);
+assert(10u8 > 5u8);
+assert(10u8 >= 10u8);
+assert(10u8 <= 10u8);
+assert(10u8 <= 128u8);

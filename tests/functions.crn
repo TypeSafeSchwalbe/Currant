@@ -1,0 +1,38 @@
+
+a: fun = (x: i32) -> i32 {
+    -> x;
+};
+
+assert(a(5i32) == 5i32);
+assert(a(10i32) == 10i32);
+
+b: fun = (x: u64) -> u64 {
+    i: u64 = 0u64;
+    while(
+        () -> bool { -> i < x; },
+        () -> lpa {
+            if(i == 15u64, <- {
+                -> brk;
+            });
+            i = i + 1u64;
+            -> cont;
+        }
+    );
+    -> i;
+};
+
+assert(b(10u64) == 10u64);
+assert(b(1000u64) == 15u64);
+assert(b(15u64) == 15u64);
+
+c: u64 = 0u64;
+d: fun = () -> fun {
+    c = c + 1u64;
+    -> d;
+};
+
+d()()()()();
+assert(c == 5u64);
+
+d()()();
+assert(c == 8u64);

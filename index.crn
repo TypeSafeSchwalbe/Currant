@@ -1,10 +1,2 @@
 
 log("Hello, Currant!");
-
-test: arr = [i32: 0u64: none];
-test = Array.addAt(test, 0u64, 5i32);
-log(test);
-test = Array.addAt(test, 1u64, 10i32);
-log(test);
-test = Array.addAt(test, 2u64, 69i32);
-log(test);

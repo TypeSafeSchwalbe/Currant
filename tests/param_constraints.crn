@@ -1,0 +1,18 @@
+
+returnBoxContent: fun = (box: Box => box.isSome()) -> box.getType() {
+    -> box.unwrap();
+};
+
+assert(returnBoxContent(Box(420u64)) == 420u64);
+
+modifyPointedArray: fun = (
+    item: ?,
+    index: u64,
+    array: ptr => #*array == arr && Array.itemType(*array) == #item
+) {
+    *array[index] = item;
+};
+
+test: arr = [i32: 0i32, 1i32, 2i32];
+modifyPointedArray(5i32, 1u64, &test);
+assert(test[1u64] == 5i32);

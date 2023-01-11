@@ -35,6 +35,7 @@ currant/defaults/strings.js \
 currant/defaults/time.js \
 currant/defaults/arrays.js \
 currant/defaults/dataStructures.js \
+currant/defaults/testing.js \
 currant/stack.js \
 currant/scriptLoader.js \
 currant/currant.js \

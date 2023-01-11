@@ -9,13 +9,14 @@ class CurrantScriptLoader {
     execute() {
         if(this.queue.length === 0 || this.running) return;
         this.running = true;
-        currant.currentFile = this.queue[0];
+        currant.currentFile = this.queue[0].file;
         currant.currentLine = 0;
-        let fileRequest = fetch(this.queue[0]).then(response => {
+        let fileRequest = fetch(this.queue[0].file).then(response => {
             if(response.status === 200) return response.text();
             else throw new Error(`[${response.status}] ${response.statusText}`);
         }).then(scriptText => {
-            currant.run(scriptText, this.queue[0]);
+            if(this.queue[0].test) currant.test(scriptText, this.queue[0].file);
+            else currant.run(scriptText, this.queue[0].file);
         }).catch(error => {
             currant.handleError(error);
         }).finally(() => {
@@ -29,8 +30,11 @@ class CurrantScriptLoader {
         this.execute();
     }
 
-    queueFile(fileName) {
-        this.queue.push(fileName);
+    queueFile(fileName, isTest) {
+        this.queue.push({
+            file: fileName,
+            test: isTest,
+        });
         if(!this.running) this.execute();
     }
 

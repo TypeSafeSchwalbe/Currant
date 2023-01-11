@@ -8,6 +8,24 @@ const CURRANT_STD_MATH = `
         E: f64 = 2.718281828459045f64;
         PI: f64 = 3.141592653589793f64;
 
+        INT_8_MIN: i8 = -128i8;
+        INT_8_MAX: i8 = 127i8;
+        INT_16_MIN: i16 = -32768i16;
+        INT_16_MAX: i16 = 32767i16;
+        INT_32_MIN: i32 = -2147483648i32;
+        INT_32_MAX: i32 = 2147483647i32;
+        INT_64_MIN: i64 = -9223372036854775808i64;
+        INT_64_MAX: i64 = 9223372036854775807i64;
+
+        UINT_8_MIN: u8 = 0u8;
+        UINT_8_MAX: u8 = 255u8;
+        UINT_16_MIN: u16 = 0u16;
+        UINT_16_MAX: u16 = 65535u16;
+        UINT_32_MIN: u32 = 0u32;
+        UINT_32_MAX: u32 = 4294967295u32;
+        UINT_64_MIN: u64 = 0u64;
+        UINT_64_MAX: u64 = 18446744073709551615u64;
+
         abs: fun = (x: ?) -> #x {
             if(x < numType~0u8, <- {
                 -> numType~0u8 - x;

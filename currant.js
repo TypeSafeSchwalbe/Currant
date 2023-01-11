@@ -179,6 +179,7 @@ class CurrantLexer {
             this.createPreset(">=", "greater_equals"),
             this.createPreset("<-", "arrow_left"),
             this.createPreset("->", "arrow_right"),
+            this.createPreset("=>", "double_arrow_right"),
 
             this.createPreset("[\\w\\d_]+", "identifier")
         ];
@@ -1056,7 +1057,7 @@ class CurrantCastNumberNode extends CurrantNode {
         if(numberTypeIsBigInt && !convertTypeIsBigInt)
             number = Number(number);
         if(!numberTypeIsBigInt && convertTypeIsBigInt)
-            number = BigInt(number);
+            number = BigInt(Math.floor(number));
         return convertType.fromValue(number);
     }
 
@@ -1437,6 +1438,7 @@ class CurrantFunctionNode extends CurrantNode {
         let returnable = true;
         this.paramNames = [];
         let paramTypeNodes = [];
+        this.paramConstraintNodes = [];
         let returnTypeNode = null;
         this.isTypeConstructor = false;
         if(super.token().name === "dollar") {
@@ -1456,7 +1458,13 @@ class CurrantFunctionNode extends CurrantNode {
                     if(super.token().name === "question_mark") {
                         paramTypeNodes.push(null);
                         super.nextToken();
-                    } else paramTypeNodes.push(super.evalUntil(["comma", "closing_parenthesis"], false, false));
+                    } else paramTypeNodes.push(super.evalUntil(["comma", "double_arrow_right", "closing_parenthesis"], false, false));
+                    if(super.token().name === "double_arrow_right") {
+                        super.nextToken();
+                        this.paramConstraintNodes.push(super.evalUntil(["comma", "closing_parenthesis"], false, false));
+                    } else {
+                        this.paramConstraintNodes.push(null);
+                    }
                     if(super.token().name === "closing_parenthesis") break;
                     super.expectToken("comma");
                     super.nextToken();
@@ -1552,9 +1560,11 @@ class CurrantFunction extends CurrantFunctionInterface {
             paramNodesOffset = 2;
         }
         this.paramTypes = new Array(functionNode.paramNames.length);
+        this.paramConstraints = new Array(functionNode.paramNames.length);
         this.paramNames = new Array(functionNode.paramNames.length);
         for(let i = 0; i < functionNode.paramNames.length; i++) {
             this.paramTypes[i] = functionNode.children[paramNodesOffset + i];
+            this.paramConstraints[i] = functionNode.paramConstraintNodes[i];
             this.paramNames[i] = functionNode.paramNames[i];
         }
     }
@@ -1577,6 +1587,17 @@ class CurrantFunction extends CurrantFunctionInterface {
                     throw new Error(`unable to call function - value for argument "${this.paramNames[paramIndex]}" (index ${paramIndex}) is not of type "${paramTypeNode.src}"`);
                 let paramName = this.paramNames[paramIndex];
                 bodyCopy.createVariable(paramName, paramValue.copy());
+                let paramConstraintNode = this.paramConstraints[paramIndex];
+                if(paramConstraintNode !== null) {
+                    paramConstraintNode.setBlock(bodyCopy);
+                    let constraintFulfilled = paramConstraintNode.execute();
+                    if(constraintFulfilled instanceof CurrantVariableReference) constraintFulfilled = constraintFulfilled.get();
+                    if(!(constraintFulfilled.type instanceof CurrantBooleanType))
+                        throw new Error(`unable to call function - defined constraint "${paramConstraintNode.src}" for argument "${paramName}" (index ${paramIndex}) did not evaluate to a boolean`);
+                    constraintFulfilled = constraintFulfilled.get();
+                    if(constraintFulfilled !== true)
+                        throw new Error(`unable to call function - defined constraint "${paramConstraintNode.src}" for argument "${paramName}" (index ${paramIndex}) was not fulfilled (did not evaluate to true)`);
+                }
             }
         });
         let resultType = null;
@@ -2076,6 +2097,24 @@ const CURRANT_STD_MATH = `
 
         E: f64 = 2.718281828459045f64;
         PI: f64 = 3.141592653589793f64;
+
+        INT_8_MIN: i8 = -128i8;
+        INT_8_MAX: i8 = 127i8;
+        INT_16_MIN: i16 = -32768i16;
+        INT_16_MAX: i16 = 32767i16;
+        INT_32_MIN: i32 = -2147483648i32;
+        INT_32_MAX: i32 = 2147483647i32;
+        INT_64_MIN: i64 = -9223372036854775808i64;
+        INT_64_MAX: i64 = 9223372036854775807i64;
+
+        UINT_8_MIN: u8 = 0u8;
+        UINT_8_MAX: u8 = 255u8;
+        UINT_16_MIN: u16 = 0u16;
+        UINT_16_MAX: u16 = 65535u16;
+        UINT_32_MIN: u32 = 0u32;
+        UINT_32_MAX: u32 = 4294967295u32;
+        UINT_64_MIN: u64 = 0u64;
+        UINT_64_MAX: u64 = 18446744073709551615u64;
 
         abs: fun = (x: ?) -> #x {
             if(x < numType~0u8, <- {
@@ -2634,22 +2673,23 @@ const CURRANT_STD_ARRAYS = `
             -> dest;
         };
 
-        copyInto: fun = (src: arr, srcStart: u64, dest: arr, destStart: u64, elements: u64) {
+        copyIntoPtr: fun = (src: arr, srcStart: u64, dest: ptr, destStart: u64, elements: u64) {
             for(range(0u64, elements), (i: u64) -> lpa {
-                dest[destStart + i] = src[srcStart + i];
+                *dest[destStart + i] = src[srcStart + i];
                 -> cont;
             });
         };
 
+        copyIntoCopy: fun = (src: arr, srcStart: u64, dest: arr, destStart: u64, elements: u64) -> arr {
+            copyIntoPtr(src, srcStart, &dest, destStart, elements);
+            -> dest;
+        };
+
         addAt: fun = (src: arr, index: u64, item: itemType(src)) -> arr {
             dest: arr = [itemType(src): len(src) + 1u64: item];
-            log(dest);
-            copyInto(src, 0u64, dest, 0u64, index);
-            log(dest);
+            copyIntoPtr(src, 0u64, &dest, 0u64, index);
             dest[index] = item;
-            log(dest);
-            copyInto(src, index, dest, index + 1u64, len(src) - index);
-            log(dest);
+            copyIntoPtr(src, index, &dest, index + 1u64, len(src) - index);
             -> dest;
         };
 
@@ -2662,8 +2702,8 @@ const CURRANT_STD_ARRAYS = `
             if(len(src) == 0u64, <- { -> items; });
             if(len(items) == 0u64, <- { -> src; });
             dest: arr = [itemType(src): len(src) + len(items): src[0u64]];
-            copyInto(src, 0u64, dest, 0u64, len(src));
-            copyInto(items, 0u64, dest, len(src), len(items));
+            copyIntoPtr(src, 0u64, &dest, 0u64, len(src));
+            copyIntoPtr(items, 0u64, &dest, len(src), len(items));
             -> dest;
         };
 
@@ -2707,8 +2747,8 @@ const CURRANT_STD_ARRAYS = `
         removeAt: fun = (src: arr, index: u64) -> arr {
             if(len(src) == 0u64, { panic("given array is already empty"); });
             dest: arr = [itemType(src): len(src) - 1u64: src[0u64]];
-            copyInto(src, 0u64, dest, 0u64, index);
-            copyInto(src, index + 1u64, dest, index, len(dest) - index);
+            copyIntoPtr(src, 0u64, &dest, 0u64, index);
+            copyIntoPtr(src, index + 1u64, &dest, index, len(dest) - index);
             -> dest;
         };
 
@@ -2743,11 +2783,66 @@ const CURRANT_STD_DATASTRUCTURES = `
 
     HashMap: type = $(keyType: type, valType: type) {
 
+        getKeyType: fun = () -> type { -> keyType; };
 
+        getValType: fun = () -> type { -> valType; };
+
+        Item: type = $(key: keyType, value: valType) {};
+
+        getHashJsImpl: fun = f@currantGetHash;
+        getKeyHash: fun = (key: keyType) -> f64 {
+            -> f64~getHashJsImpl(key) / f64~Math.UINT_32_MAX;
+        };
+
+        buckets: arr = [arr: 16u64: [Item: 0u64: none]];
+
+        getBucketIndex: fun = (key: keyType) -> u64 {
+            -> u64~(getKeyHash(key) * f64~len(buckets));
+        };
+
+        set: fun = (key: keyType, value: valType) {
+            bucketIndex: u64 = getBucketIndex(key);
+            found: bool = false;
+            for(buckets[bucketIndex], (item: Item) -> lpa {
+                if(item.key == key, <- {
+                    item.value = value;
+                    found = true;
+                    -> brk;
+                });
+                -> cont;
+            });
+            if(!found, {
+                buckets[bucketIndex] = Array.add(buckets[bucketIndex], Item(key, value));
+            });
+        };
 
     };
     HshMap: type = HashMap;
 
+`;
+
+function currantGetHash(value) {
+    let asString = JSON.stringify(value);
+    let hash = 0, i, chr;
+    if(asString.length === 0) return hash;
+    for(i = 0; i < asString.length; i++) {
+        chr = asString.charCodeAt(i);
+        hash = ((hash << 5) - hash) + chr;
+        hash |= 0;
+    }
+    return currantCreateU32(hash);
+}
+
+
+
+// "currant/defaults/testing.js"
+
+const CURRANT_STD_TESTING = `
+    assert: fun = (statement: bool) {
+        if(!statement, {
+            panic("assertion failed");
+        });
+    };
 `;
 
 
@@ -2808,13 +2903,14 @@ class CurrantScriptLoader {
     execute() {
         if(this.queue.length === 0 || this.running) return;
         this.running = true;
-        currant.currentFile = this.queue[0];
+        currant.currentFile = this.queue[0].file;
         currant.currentLine = 0;
-        let fileRequest = fetch(this.queue[0]).then(response => {
+        let fileRequest = fetch(this.queue[0].file).then(response => {
             if(response.status === 200) return response.text();
             else throw new Error(`[${response.status}] ${response.statusText}`);
         }).then(scriptText => {
-            currant.run(scriptText, this.queue[0]);
+            if(this.queue[0].test) currant.test(scriptText, this.queue[0].file);
+            else currant.run(scriptText, this.queue[0].file);
         }).catch(error => {
             currant.handleError(error);
         }).finally(() => {
@@ -2828,8 +2924,11 @@ class CurrantScriptLoader {
         this.execute();
     }
 
-    queueFile(fileName) {
-        this.queue.push(fileName);
+    queueFile(fileName, isTest) {
+        this.queue.push({
+            file: fileName,
+            test: isTest,
+        });
         if(!this.running) this.execute();
     }
 
@@ -2866,6 +2965,7 @@ class Currant {
         this.run(CURRANT_STD_TIME, "std.time.crn");
         this.run(CURRANT_STD_ARRAYS, "std.arrays.crn");
         this.run(CURRANT_STD_DATASTRUCTURES, "std.data_structures.crn");
+        this.run(CURRANT_STD_TESTING, "std.testing.crn");
     }
 
     handleError(error) {
@@ -2873,26 +2973,46 @@ class Currant {
         if(this.showInterpreterStackTrace) throw error;
     }
 
-    run(scriptText, fileName) {
+    _runInternal(scriptText, fileName) {
         this.stack.clear();
+        if(typeof fileName === "undefined") fileName = null;
+        // preprocessor
+        let processedText = this.preprocessor.process(scriptText);
+        // lexer
+        let tokens = this.lexer.tokenize(processedText, fileName);
+        for(const token of tokens) token.currant = this; // attach runtime reference to tokens (for errors during parsing)
+        // parsing
+        let blockNode = new CurrantBlockNode().setRuntime(this).parse(tokens);
+        blockNode.block = this.lastBlockNode;
+        // execution
+        let executeResult = blockNode.execute();
+        this.lastBlockNode = blockNode;
+        if(executeResult === null) return executeResult;
+        else return executeResult.getValue();
+    }
+
+    run(scriptText, fileName) {
         try {
-            if(typeof fileName === "undefined") fileName = null;
-            // preprocessor
-            let processedText = this.preprocessor.process(scriptText);
-            // lexer
-            let tokens = this.lexer.tokenize(processedText, fileName);
-            for(const token of tokens) token.currant = this; // attach runtime reference to tokens (for errors during parsing)
-            // parsing
-            let blockNode = new CurrantBlockNode().setRuntime(this).parse(tokens);
-            blockNode.block = this.lastBlockNode;
-            // execution
-            let executeResult = blockNode.execute();
-            this.lastBlockNode = blockNode;
-            if(executeResult === null) return executeResult;
-            else return executeResult.getValue();
+            return this._runInternal(scriptText, fileName);
         } catch(error) {
             this.handleError(error);
         }
+    }
+
+    test(scriptText, fileName) {
+        let returnedValue;
+        try {
+            returnedValue = this._runInternal(scriptText, fileName);
+        } catch(error) {
+            console.error(`Test "${fileName}" failed:`);
+            this.handleError(error);
+            return;
+        }
+        console.log(
+            "%c" + `Test "${fileName}" passed!`,
+            "color: #84da72;"
+        );
+        return returnedValue;
     }
 
 }
@@ -2913,11 +3033,19 @@ class CurrantScript extends HTMLElement {
             this.style.display = "none";
             this.type = "text/plain";
             // load script sources and parse
-            if(this.hasAttribute("src")) {
-                currant.loader.queueFile(this.getAttribute("src"));
-            } else {
+            if(!this.hasAttribute("src")) {
                 console.warn(`'${currant.scriptTagName}'-element did not specify attribute 'src'.`);
+                return;
             }
+            let type = "script";
+            if(this.hasAttribute("type")) {
+                type = this.getAttribute("type");
+            }
+            if(type !== "script" && type !== "test") {
+                console.warn(`'${currant.scriptTagName}'-element specified invalid attribute 'type', must be "script" or "test", but is "${type}" instead. Defaulting to "script".`);
+                type = "script";
+            }
+            currant.loader.queueFile(this.getAttribute("src"), type === "test");
         });
     }
 

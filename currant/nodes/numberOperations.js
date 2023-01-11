@@ -32,7 +32,7 @@ class CurrantCastNumberNode extends CurrantNode {
         if(numberTypeIsBigInt && !convertTypeIsBigInt)
             number = Number(number);
         if(!numberTypeIsBigInt && convertTypeIsBigInt)
-            number = BigInt(number);
+            number = BigInt(Math.floor(number));
         return convertType.fromValue(number);
     }
 

@@ -58,6 +58,7 @@ class CurrantLexer {
             this.createPreset(">=", "greater_equals"),
             this.createPreset("<-", "arrow_left"),
             this.createPreset("->", "arrow_right"),
+            this.createPreset("=>", "double_arrow_right"),
 
             this.createPreset("[\\w\\d_]+", "identifier")
         ];

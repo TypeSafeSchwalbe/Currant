@@ -29,22 +29,23 @@ const CURRANT_STD_ARRAYS = `
             -> dest;
         };
 
-        copyInto: fun = (src: arr, srcStart: u64, dest: arr, destStart: u64, elements: u64) {
+        copyIntoPtr: fun = (src: arr, srcStart: u64, dest: ptr, destStart: u64, elements: u64) {
             for(range(0u64, elements), (i: u64) -> lpa {
-                dest[destStart + i] = src[srcStart + i];
+                *dest[destStart + i] = src[srcStart + i];
                 -> cont;
             });
         };
 
+        copyIntoCopy: fun = (src: arr, srcStart: u64, dest: arr, destStart: u64, elements: u64) -> arr {
+            copyIntoPtr(src, srcStart, &dest, destStart, elements);
+            -> dest;
+        };
+
         addAt: fun = (src: arr, index: u64, item: itemType(src)) -> arr {
             dest: arr = [itemType(src): len(src) + 1u64: item];
-            log(dest);
-            copyInto(src, 0u64, dest, 0u64, index);
-            log(dest);
+            copyIntoPtr(src, 0u64, &dest, 0u64, index);
             dest[index] = item;
-            log(dest);
-            copyInto(src, index, dest, index + 1u64, len(src) - index);
-            log(dest);
+            copyIntoPtr(src, index, &dest, index + 1u64, len(src) - index);
             -> dest;
         };
 
@@ -57,8 +58,8 @@ const CURRANT_STD_ARRAYS = `
             if(len(src) == 0u64, <- { -> items; });
             if(len(items) == 0u64, <- { -> src; });
             dest: arr = [itemType(src): len(src) + len(items): src[0u64]];
-            copyInto(src, 0u64, dest, 0u64, len(src));
-            copyInto(items, 0u64, dest, len(src), len(items));
+            copyIntoPtr(src, 0u64, &dest, 0u64, len(src));
+            copyIntoPtr(items, 0u64, &dest, len(src), len(items));
             -> dest;
         };
 
@@ -102,8 +103,8 @@ const CURRANT_STD_ARRAYS = `
         removeAt: fun = (src: arr, index: u64) -> arr {
             if(len(src) == 0u64, { panic("given array is already empty"); });
             dest: arr = [itemType(src): len(src) - 1u64: src[0u64]];
-            copyInto(src, 0u64, dest, 0u64, index);
-            copyInto(src, index + 1u64, dest, index, len(dest) - index);
+            copyIntoPtr(src, 0u64, &dest, 0u64, index);
+            copyIntoPtr(src, index + 1u64, &dest, index, len(dest) - index);
             -> dest;
         };
 

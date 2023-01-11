@@ -7,6 +7,7 @@ class CurrantFunctionNode extends CurrantNode {
         let returnable = true;
         this.paramNames = [];
         let paramTypeNodes = [];
+        this.paramConstraintNodes = [];
         let returnTypeNode = null;
         this.isTypeConstructor = false;
         if(super.token().name === "dollar") {
@@ -26,7 +27,13 @@ class CurrantFunctionNode extends CurrantNode {
                     if(super.token().name === "question_mark") {
                         paramTypeNodes.push(null);
                         super.nextToken();
-                    } else paramTypeNodes.push(super.evalUntil(["comma", "closing_parenthesis"], false, false));
+                    } else paramTypeNodes.push(super.evalUntil(["comma", "double_arrow_right", "closing_parenthesis"], false, false));
+                    if(super.token().name === "double_arrow_right") {
+                        super.nextToken();
+                        this.paramConstraintNodes.push(super.evalUntil(["comma", "closing_parenthesis"], false, false));
+                    } else {
+                        this.paramConstraintNodes.push(null);
+                    }
                     if(super.token().name === "closing_parenthesis") break;
                     super.expectToken("comma");
                     super.nextToken();
@@ -122,9 +129,11 @@ class CurrantFunction extends CurrantFunctionInterface {
             paramNodesOffset = 2;
         }
         this.paramTypes = new Array(functionNode.paramNames.length);
+        this.paramConstraints = new Array(functionNode.paramNames.length);
         this.paramNames = new Array(functionNode.paramNames.length);
         for(let i = 0; i < functionNode.paramNames.length; i++) {
             this.paramTypes[i] = functionNode.children[paramNodesOffset + i];
+            this.paramConstraints[i] = functionNode.paramConstraintNodes[i];
             this.paramNames[i] = functionNode.paramNames[i];
         }
     }
@@ -147,6 +156,17 @@ class CurrantFunction extends CurrantFunctionInterface {
                     throw new Error(`unable to call function - value for argument "${this.paramNames[paramIndex]}" (index ${paramIndex}) is not of type "${paramTypeNode.src}"`);
                 let paramName = this.paramNames[paramIndex];
                 bodyCopy.createVariable(paramName, paramValue.copy());
+                let paramConstraintNode = this.paramConstraints[paramIndex];
+                if(paramConstraintNode !== null) {
+                    paramConstraintNode.setBlock(bodyCopy);
+                    let constraintFulfilled = paramConstraintNode.execute();
+                    if(constraintFulfilled instanceof CurrantVariableReference) constraintFulfilled = constraintFulfilled.get();
+                    if(!(constraintFulfilled.type instanceof CurrantBooleanType))
+                        throw new Error(`unable to call function - defined constraint "${paramConstraintNode.src}" for argument "${paramName}" (index ${paramIndex}) did not evaluate to a boolean`);
+                    constraintFulfilled = constraintFulfilled.get();
+                    if(constraintFulfilled !== true)
+                        throw new Error(`unable to call function - defined constraint "${paramConstraintNode.src}" for argument "${paramName}" (index ${paramIndex}) was not fulfilled (did not evaluate to true)`);
+                }
             }
         });
         let resultType = null;

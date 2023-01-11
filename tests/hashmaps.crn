@@ -1,0 +1,5 @@
+
+test: HshMap = HshMap(str, i32);
+test.set("Hello", 500i32);
+
+log(test.buckets[8u64][0u64].key);
