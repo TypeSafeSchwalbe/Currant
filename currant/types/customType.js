@@ -62,9 +62,7 @@ class CurrantCustomType extends CurrantType {
 class CurrantCustomObject {
 
     constructor(data) {
-        this.variables = new Map(data.variables);
-        for(const key of this.variables.keys())
-            this.variables.set(key, new CurrantBlockVariableWrapperObject(this.variables.get(key).get().copy()));
+        this.variables = data.variables;
         this.block = data.block;
     }
 

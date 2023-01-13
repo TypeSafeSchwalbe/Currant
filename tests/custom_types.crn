@@ -1,0 +1,30 @@
+
+a: type = $(val: i32) {
+
+    set: fun = (x: i32) {
+        val = x;
+    };
+
+    get: fun = () -> i32 {
+        -> val;
+    };
+
+};
+
+b: a = a(0i32);
+assert(b.get() == 0i32);
+assert(b.val == 0i32);
+b.set(69i32);
+assert(b.get() == 69i32);
+assert(b.val == 69i32);
+
+c: a = a(420i32);
+assert(c.get() == 420i32);
+assert(c.val == 420i32);
+assert(b.get() == 69i32);
+assert(b.val == 69i32);
+c.set(-1i32);
+assert(c.get() == -1i32);
+assert(c.val == -1i32);
+assert(b.get() == 69i32);
+assert(b.val == 69i32);

@@ -1,5 +1,32 @@
 
 test: HshMap = HshMap(str, i32);
-test.set("Hello", 500i32);
+test.setInitialCapacity(1u64);
 
-log(test.buckets[8u64][0u64].key);
+assert(test.isEmpty());
+
+test.put("Hello", 500i32);
+test.put("Goodbye", -1i32);
+
+assert(test.get("Hello").unwrap() == 500i32);
+assert(test.get("Goodbye").unwrap() == -1i32);
+assert(test.get("A").isNone());
+
+assert(test.keys() == [str: "Hello", "Goodbye"]);
+assert(test.values() == [i32: 500i32, -1i32]);
+
+assert(test.containsKey("Hello"));
+assert(!test.containsKey("Hi!"));
+assert(test.containsValue(500i32));
+assert(!test.containsValue(250i32));
+
+assert(test.getOrDefault("Goodbye", -5i32) == -1i32);
+assert(test.getOrDefault("Guten Tag", -5i32) == -5i32);
+
+assert(test.size() == 2u64);
+assert(!test.isEmpty());
+
+test.remove("Hello");
+test.remove("Goodbye");
+
+assert(test.isEmpty());
+
