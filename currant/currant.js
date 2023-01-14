@@ -30,8 +30,12 @@ class Currant {
     }
 
     handleError(error) {
-        console.error(this.stack.produceStackTrace(this.currentFile, this.currentLine, error.message));
-        if(this.showInterpreterStackTrace) throw error;
+        if(!this.showInterpreterStackTrace)
+            throw new Error(this.stack.produceStackTrace(this.currentFile, this.currentLine, error.message));
+        else {
+            console.error(this.stack.produceStackTrace(this.currentFile, this.currentLine, error.message));
+            throw error;
+        }
     }
 
     _runInternal(scriptText, fileName) {

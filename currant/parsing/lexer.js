@@ -17,7 +17,7 @@ class CurrantLexer {
             this.createPreset("-?\\d+(\\.\\d+)?f64", "f64_literal"),
             this.createPreset("true", "boolean_literal"),
             this.createPreset("false", "boolean_literal"),
-            this.createPreset("\\\".*?\\\"", "string_literal"),
+            this.createPreset("(?<!\\\\)\".*?(?<!\\\\)\"", "string_literal"),
 
             this.createPreset("\\/\\/", "line_comment"),
             this.createPreset("\\/\\*", "block_comment_start"),
