@@ -90,12 +90,16 @@ class CurrantBlockNode extends CurrantNode {
         return CurrantBlockNode.staticHasVariable(this.variables, this.block, name);
     }
 
-    static staticGetVariable(variables, parentBlock, name) {
+    static staticGetVariableWrapper(variables, parentBlock, name) {
         if(!variables.has(name) && parentBlock !== null)
-            return CurrantBlockNode.staticGetVariable(parentBlock.variables, parentBlock.block, name);
+            return CurrantBlockNode.staticGetVariableWrapper(parentBlock.variables, parentBlock.block, name);
         if(!variables.has(name))
-            throw new Error(`"${name}" is not a variable known by this scope`);
-        return variables.get(name).get();
+            throw new Error(`unable to access variable - "${name}" is not a variable known by this scope`);
+        return variables.get(name);
+    }
+
+    static staticGetVariable(variables, parentBlock, name) {
+        return CurrantBlockNode.staticGetVariableWrapper(variables, parentBlock, name).get();
     }
 
     getVariable(name) {
@@ -115,7 +119,11 @@ class CurrantBlockNode extends CurrantNode {
     }
 
     static staticSetVariable(variables, parentBlock, name, value) {
-        if(!CurrantBlockNode.staticHasVariable(variables, parentBlock, name) || variables.has(name)) { // does not exist in upper scope
+        if(variables.has(name)) { // exists in this scope
+            variables.get(name).value = value;
+            return;
+        }
+        if(!CurrantBlockNode.staticHasVariable(variables, parentBlock, name)) { // does not exist in upper scope, it's brand new!
             variables.set(name, new CurrantBlockVariableWrapperObject(value));
             return;
         }

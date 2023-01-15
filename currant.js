@@ -138,7 +138,7 @@ class CurrantLexer {
             this.createPreset("-?\\d+(\\.\\d+)?f64", "f64_literal"),
             this.createPreset("true", "boolean_literal"),
             this.createPreset("false", "boolean_literal"),
-            this.createPreset("\\\".*?\\\"", "string_literal"),
+            this.createPreset("(?<!\\\\)\".*?(?<!\\\\)\"", "string_literal"),
 
             this.createPreset("\\/\\/", "line_comment"),
             this.createPreset("\\/\\*", "block_comment_start"),
@@ -739,12 +739,16 @@ class CurrantBlockNode extends CurrantNode {
         return CurrantBlockNode.staticHasVariable(this.variables, this.block, name);
     }
 
-    static staticGetVariable(variables, parentBlock, name) {
+    static staticGetVariableWrapper(variables, parentBlock, name) {
         if(!variables.has(name) && parentBlock !== null)
-            return CurrantBlockNode.staticGetVariable(parentBlock.variables, parentBlock.block, name);
+            return CurrantBlockNode.staticGetVariableWrapper(parentBlock.variables, parentBlock.block, name);
         if(!variables.has(name))
-            throw new Error(`"${name}" is not a variable known by this scope`);
-        return variables.get(name).get();
+            throw new Error(`unable to access variable - "${name}" is not a variable known by this scope`);
+        return variables.get(name);
+    }
+
+    static staticGetVariable(variables, parentBlock, name) {
+        return CurrantBlockNode.staticGetVariableWrapper(variables, parentBlock, name).get();
     }
 
     getVariable(name) {
@@ -764,7 +768,11 @@ class CurrantBlockNode extends CurrantNode {
     }
 
     static staticSetVariable(variables, parentBlock, name, value) {
-        if(!CurrantBlockNode.staticHasVariable(variables, parentBlock, name) || variables.has(name)) { // does not exist in upper scope
+        if(variables.has(name)) { // exists in this scope
+            variables.get(name).value = value;
+            return;
+        }
+        if(!CurrantBlockNode.staticHasVariable(variables, parentBlock, name)) { // does not exist in upper scope, it's brand new!
             variables.set(name, new CurrantBlockVariableWrapperObject(value));
             return;
         }
@@ -1734,11 +1742,13 @@ class CurrantPointerNode extends CurrantNode {
     doParse() {
         super.expectToken("ampersand");
         super.nextToken();
-        super.addChild(super.evalUntil(null, false, false));
+        super.expectToken("identifier");
+        this.refName = super.token().text;
         super.expectEnd();
     }
 
     doExecute() {
+        this.ref = CurrantBlockNode.staticGetVariableWrapper(this.block.variables, this.block.block, this.refName);
         return new CurrantPointerType().fromNode(this);
     }
 
@@ -1747,12 +1757,15 @@ class CurrantPointerNode extends CurrantNode {
 class CurrantPointerType extends CurrantType {
     varStorage(size) { return new Array(size); }
     instNode(node) {
-        if(!(node.childValues[0] instanceof CurrantVariableReference))
+        if(!(node.ref instanceof CurrantBlockVariableWrapperObject))
             throw new Error("tried to create a pointer to something that is not a variable");
-        return new CurrantPointer(node.childValues[0]);
+        return new CurrantPointer(node.ref);
     }
     instVal(value) { return value; }
     val(instance) { return new CurrantPointer(); }
+    eq(a, b) {
+        return a.ref === b.ref;
+    }
 }
 
 class CurrantPointer {
@@ -1779,7 +1792,11 @@ class CurrantPointerDerefNode extends CurrantNode {
         let pointer = super.childValue(0);
         if(pointer.type.constructor !== CurrantPointerType)
             throw new Error("tried to dereference something that is not a pointer");
-        return pointer.get().ref;
+        return new CurrantVariableReference((value) => {
+            pointer.get().ref.value = value;
+        }, () => {
+            return pointer.get().ref.value;
+        });
     }
 
 }
@@ -2016,7 +2033,20 @@ class CurrantStringNode extends CurrantLiteralNode {
 }
 class CurrantStringType extends CurrantType {
     varStorage(size) { return new Array(size); }
-    instNode(node) { return node.value.substring(1, node.value.length - 1); }
+    instNode(node) {
+        let content = node.value.substring(1, node.value.length - 1);
+        let scannedIndex = 0;
+        while(scannedIndex < content.length) {
+            if(content.substr(scannedIndex, 2).startsWith("\\")) {
+                if(content.substr(scannedIndex, 2).startsWith("\\n"))
+                     content = content.substring(0, scannedIndex) + "\n" + content.substring(scannedIndex + 2, content.length);
+                else content = content.substring(0, scannedIndex) + content.substring(scannedIndex + 1, content.length);
+                scannedIndex++;
+            }
+            scannedIndex++;
+        }
+        return content;
+    }
     instVal(value) { return value; }
 }
 
@@ -2074,12 +2104,15 @@ const CURRANT_STD_CONDITIONS = `
     if: fun = f@currantIf;
 `;
 
-function currantIf(condition, action) {
+function currantIf(condition, ifAction, elseAction) {
     if(typeof condition !== "boolean")
         throw new Error(`given argument at index 0 is not a boolean`);
-    if(typeof action !== "function")
+    if(typeof ifAction !== "function")
         throw new Error(`given argument at index 1 is not a function`);
-    if(condition === true) action();
+    if(typeof elseAction !== "undefined" && typeof elseAction !== "function")
+        throw new Error(`given argument at index 2 is not a function / undefined`);
+    if(condition === true) ifAction();
+    if(condition === false && typeof elseAction === "function") elseAction();
 }
 
 
@@ -3053,7 +3086,7 @@ class Currant {
         this.currentFile = null;
         this.currentLine = 0;
         this.scriptTagName = "currant-script";
-        this.showInterpreterStackTrace = false;
+        this.showInterpreterStackTrace = true;
         this.stack = new CurrantStack();
         this.loader = new CurrantScriptLoader();
         this._loadDefaults();
@@ -3074,8 +3107,12 @@ class Currant {
     }
 
     handleError(error) {
-        console.error(this.stack.produceStackTrace(this.currentFile, this.currentLine, error.message));
-        if(this.showInterpreterStackTrace) throw error;
+        if(!this.showInterpreterStackTrace)
+            throw new Error(this.stack.produceStackTrace(this.currentFile, this.currentLine, error.message));
+        else {
+            console.error(this.stack.produceStackTrace(this.currentFile, this.currentLine, error.message));
+            throw error;
+        }
     }
 
     _runInternal(scriptText, fileName) {
