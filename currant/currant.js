@@ -9,7 +9,7 @@ class Currant {
         this.currentFile = null;
         this.currentLine = 0;
         this.scriptTagName = "currant-script";
-        this.showInterpreterStackTrace = true;
+        this.showInterpreterStackTrace = false;
         this.stack = new CurrantStack();
         this.loader = new CurrantScriptLoader();
         this._loadDefaults();
