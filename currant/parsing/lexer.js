@@ -60,7 +60,7 @@ class CurrantLexer {
             this.createPreset("->", "arrow_right"),
             this.createPreset("=>", "double_arrow_right"),
 
-            this.createPreset("[\\w\\d_]+", "identifier")
+            this.createPreset("\\w+", "identifier")
         ];
     }
 

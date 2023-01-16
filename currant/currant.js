@@ -10,6 +10,7 @@ class Currant {
         this.currentLine = 0;
         this.scriptTagName = "currant-script";
         this.showInterpreterStackTrace = false;
+        this.printPreprocessorOutput = false;
         this.stack = new CurrantStack();
         this.loader = new CurrantScriptLoader();
         this._loadDefaults();
@@ -27,6 +28,15 @@ class Currant {
         this.run(CURRANT_STD_ARRAYS, "std.arrays.crn");
         this.run(CURRANT_STD_DATASTRUCTURES, "std.data_structures.crn");
         this.run(CURRANT_STD_TESTING, "std.testing.crn");
+        this.run(CURRANT_STD_MACROS, "std.macros.crn");
+    }
+
+    showInternalStackTrace(show) {
+        this.showInterpreterStackTrace = show === true;
+    }
+
+    showPreprocessorOutput(show) {
+        this.printPreprocessorOutput = show === true;
     }
 
     handleError(error) {
@@ -43,6 +53,10 @@ class Currant {
         if(typeof fileName === "undefined") fileName = null;
         // preprocessor
         let processedText = this.preprocessor.process(scriptText);
+        if(this.printPreprocessorOutput === true) {
+            console.info("Processing of Macros for script \"" + fileName + "\" produced the following output:");
+            console.info(processedText);
+        }
         // lexer
         let tokens = this.lexer.tokenize(processedText, fileName);
         for(const token of tokens) token.currant = this; // attach runtime reference to tokens (for errors during parsing)

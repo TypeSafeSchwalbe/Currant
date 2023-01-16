@@ -81,6 +81,11 @@ class CurrantPreprocessor {
                         + match[Number(matchRefMatch[0].slice(1, 2)) + 1]
                         + replacement.slice(matchRefMatch.index + matchRefMatch[0].length, replacement.length);
                 }
+                let replacementLines = replacement.split("\n");
+                for(let replacementLineIndex = 0; replacementLineIndex < replacementLines.length; replacementLineIndex++) {
+                    replacementLines[replacementLineIndex] = replacementLines[replacementLineIndex].trim();
+                }
+                replacement = replacementLines.join(" ");
                 result = result.slice(0, match.index)
                     + replacement
                     + result.slice(match.index + match[0].length, result.length);

@@ -105,6 +105,11 @@ class CurrantPreprocessor {
                         + match[Number(matchRefMatch[0].slice(1, 2)) + 1]
                         + replacement.slice(matchRefMatch.index + matchRefMatch[0].length, replacement.length);
                 }
+                let replacementLines = replacement.split("\n");
+                for(let replacementLineIndex = 0; replacementLineIndex < replacementLines.length; replacementLineIndex++) {
+                    replacementLines[replacementLineIndex] = replacementLines[replacementLineIndex].trim();
+                }
+                replacement = replacementLines.join(" ");
                 result = result.slice(0, match.index)
                     + replacement
                     + result.slice(match.index + match[0].length, result.length);
@@ -181,7 +186,7 @@ class CurrantLexer {
             this.createPreset("->", "arrow_right"),
             this.createPreset("=>", "double_arrow_right"),
 
-            this.createPreset("[\\w\\d_]+", "identifier")
+            this.createPreset("\\w+", "identifier")
         ];
     }
 
@@ -2985,6 +2990,25 @@ const CURRANT_STD_TESTING = `
 
 
 
+// "currant/defaults/macros.js"
+
+const CURRANT_STD_MACROS = `
+
+    #start-macro \\|(.+?)\\|
+    () -> #macro_operation_result {
+        macro_operation_result: ? = {0};
+        -> macro_operation_result;
+    }
+    #end-macro
+
+    #start-macro \\^
+    <-
+    #end-macro
+
+`;
+
+
+
 // "currant/stack.js"
 
 class CurrantStack {
@@ -3087,6 +3111,7 @@ class Currant {
         this.currentLine = 0;
         this.scriptTagName = "currant-script";
         this.showInterpreterStackTrace = false;
+        this.printPreprocessorOutput = false;
         this.stack = new CurrantStack();
         this.loader = new CurrantScriptLoader();
         this._loadDefaults();
@@ -3104,6 +3129,15 @@ class Currant {
         this.run(CURRANT_STD_ARRAYS, "std.arrays.crn");
         this.run(CURRANT_STD_DATASTRUCTURES, "std.data_structures.crn");
         this.run(CURRANT_STD_TESTING, "std.testing.crn");
+        this.run(CURRANT_STD_MACROS, "std.macros.crn");
+    }
+
+    showInternalStackTrace(show) {
+        this.showInterpreterStackTrace = show === true;
+    }
+
+    showPreprocessorOutput(show) {
+        this.printPreprocessorOutput = show === true;
     }
 
     handleError(error) {
@@ -3120,6 +3154,10 @@ class Currant {
         if(typeof fileName === "undefined") fileName = null;
         // preprocessor
         let processedText = this.preprocessor.process(scriptText);
+        if(this.printPreprocessorOutput === true) {
+            console.info("Processing of Macros for script \"" + fileName + "\" produced the following output:");
+            console.info(processedText);
+        }
         // lexer
         let tokens = this.lexer.tokenize(processedText, fileName);
         for(const token of tokens) token.currant = this; // attach runtime reference to tokens (for errors during parsing)
