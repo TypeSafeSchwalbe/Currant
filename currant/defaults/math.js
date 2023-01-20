@@ -26,6 +26,11 @@ const CURRANT_STD_MATH = `
         UINT_64_MIN: u64 = 0u64;
         UINT_64_MAX: u64 = 18446744073709551615u64;
 
+        F32_INF: f32 = 1f32 / 0f32;
+        F32_NEG_INF: f32 = 0f32 - 1f32 / 0f32;
+        F64_INF: f64 = 1f64 / 0f64;
+        F64_NEG_INF: f64 = 0f64 - 1f64 / 0f64;
+
         abs: fun = (x: ?) -> #x {
             if(x < numType~0u8, <- {
                 -> numType~0u8 - x;
