@@ -31,6 +31,17 @@ const CURRANT_STD_MATH = `
         F64_INF: f64 = 1f64 / 0f64;
         F64_NEG_INF: f64 = 0f64 - 1f64 / 0f64;
 
+        F32_NaN: f32 = f@currantGetNaNF32();
+        F64_NaN: f64 = f@currantGetNaNF64();
+
+        isNaNJsImpl: fun = f@currantIsNaN;
+        isNaN: fun = (x: ?) -> bool {
+            if(#x == f32 || #x == f64, <- {
+                -> isNaNJsImpl(x);
+            });
+            -> false;
+        };
+
         abs: fun = (x: ?) -> #x {
             if(x < numType~0u8, <- {
                 -> numType~0u8 - x;
@@ -169,6 +180,18 @@ const CURRANT_STD_MATH = `
     Math: MathFunctionsType = MathFunctionsType();
 
 `;
+
+function currantGetNaNF32() {
+    return currantCreateF32(NaN);
+}
+
+function currantGetNaNF64() {
+    return currantCreateF64(NaN);
+}
+
+function currantIsNaN(x) {
+    return currantCreateBool(isNaN(x));
+}
 
 function currantLen(value) {
     if(typeof value.length === "undefined")

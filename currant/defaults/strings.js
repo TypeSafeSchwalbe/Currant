@@ -4,7 +4,6 @@ const CURRANT_STD_STRINGS = `
     StringFunctionsType: type = $() {
 
         toString: fun = f@currantToString;
-        strOf: fun = toString;
 
         containsNum: fun = f@currantContainsNum;
 
