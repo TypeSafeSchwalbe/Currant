@@ -7,13 +7,9 @@ class CurrantScript extends HTMLElement {
         // on load
         addEventListener("load", (e) => {
             // hide the element
-            this.style.display = "none";
+            this.style = "display: none; white-space: pre-wrap;";
             this.type = "text/plain";
             // load script sources and parse
-            if(!this.hasAttribute("src")) {
-                console.warn(`'${currant.scriptTagName}'-element did not specify attribute 'src'.`);
-                return;
-            }
             let type = "script";
             if(this.hasAttribute("type")) {
                 type = this.getAttribute("type");
@@ -22,7 +18,14 @@ class CurrantScript extends HTMLElement {
                 console.warn(`'${currant.scriptTagName}'-element specified invalid attribute 'type', must be "script" or "test", but is "${type}" instead. Defaulting to "script".`);
                 type = "script";
             }
-            currant.loader.queueFile(this.getAttribute("src"), type === "test");
+            if(this.hasAttribute("src"))
+                currant.loader.queueFile(this.getAttribute("src"), type === "test");
+            let tagCode = this.innerHTML
+                .split("&amp;").join("&")
+                .split("&lt;").join("<")
+                .split("&gt;").join(">");
+            if(tagCode.trim().length !== 0)
+                currant.loader.queueText(tagCode, type === "test");
         });
     }
 

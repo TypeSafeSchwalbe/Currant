@@ -2536,7 +2536,6 @@ const CURRANT_STD_STRINGS = `
     StringFunctionsType: type = $() {
 
         toString: fun = f@currantToString;
-        strOf: fun = toString;
 
         containsNum: fun = f@currantContainsNum;
 
@@ -3050,7 +3049,7 @@ class CurrantStack {
         if(currentLine === null) currentLine = "(unknown)";
         let output = `Script "${currentFile}" panicked on line ${currentLine}: ${reason}`;
         for(const element of this.elements.slice(0, this.elements.length).reverse()) {
-            output += "\n" + `    called "${element.callRef}" - called from "${element.callFile}" on line ${element.callLine} - defined at "${element.srcFile}" on line ${element.srcLine}`;
+            output += "\n" + `    called "${element.callRef}" - called from "${element.callFile}" on line ${element.callLine} - defined in "${element.srcFile}" on line ${element.srcLine}`;
         }
         return output;
     }
@@ -3093,19 +3092,26 @@ class CurrantScriptLoader {
     execute() {
         if(this.queue.length === 0 || this.running) return;
         this.running = true;
-        currant.currentFile = this.queue[0].file;
         currant.currentLine = 0;
-        let fileRequest = fetch(this.queue[0].file).then(response => {
-            if(response.status === 200) return response.text();
-            else throw new Error(`[${response.status}] ${response.statusText}`);
-        }).then(scriptText => {
-            if(this.queue[0].test) currant.test(scriptText, this.queue[0].file);
-            else currant.run(scriptText, this.queue[0].file);
-        }).catch(error => {
-            currant.handleError(error);
-        }).finally(() => {
+        if(typeof this.queue[0].file !== "undefined") {
+            currant.currentFile = this.queue[0].file;
+            let fileRequest = fetch(this.queue[0].file).then(response => {
+                if(response.status === 200) return response.text();
+                else throw new Error(`[${response.status}] ${response.statusText}`);
+            }).then(scriptText => {
+                if(this.queue[0].test) currant.test(scriptText, this.queue[0].file);
+                else currant.run(scriptText, this.queue[0].file);
+            }).catch(error => {
+                currant.handleError(error);
+            }).finally(() => {
+                this.finishExecute();
+            });
+        } else {
+            currant.currentFile = "(html tag)";
+            if(this.queue[0].test) currant.test(this.queue[0].text, "(html tag)");
+            else currant.run(this.queue[0].text, "(html tag)");
             this.finishExecute();
-        });
+        }
     }
 
     finishExecute() {
@@ -3119,7 +3125,15 @@ class CurrantScriptLoader {
             file: fileName,
             test: isTest,
         });
-        if(!this.running) this.execute();
+        this.execute();
+    }
+
+    queueText(src, isTest) {
+        this.queue.push({
+            text: src,
+            test: isTest,
+        });
+        this.execute();
     }
 
 }
@@ -3238,13 +3252,9 @@ class CurrantScript extends HTMLElement {
         // on load
         addEventListener("load", (e) => {
             // hide the element
-            this.style.display = "none";
+            this.style = "display: none; white-space: pre-wrap;";
             this.type = "text/plain";
             // load script sources and parse
-            if(!this.hasAttribute("src")) {
-                console.warn(`'${currant.scriptTagName}'-element did not specify attribute 'src'.`);
-                return;
-            }
             let type = "script";
             if(this.hasAttribute("type")) {
                 type = this.getAttribute("type");
@@ -3253,7 +3263,14 @@ class CurrantScript extends HTMLElement {
                 console.warn(`'${currant.scriptTagName}'-element specified invalid attribute 'type', must be "script" or "test", but is "${type}" instead. Defaulting to "script".`);
                 type = "script";
             }
-            currant.loader.queueFile(this.getAttribute("src"), type === "test");
+            if(this.hasAttribute("src"))
+                currant.loader.queueFile(this.getAttribute("src"), type === "test");
+            let tagCode = this.innerHTML
+                .split("&amp;").join("&")
+                .split("&lt;").join("<")
+                .split("&gt;").join(">");
+            if(tagCode.trim().length !== 0)
+                currant.loader.queueText(tagCode, type === "test");
         });
     }
 

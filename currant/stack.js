@@ -10,7 +10,7 @@ class CurrantStack {
         if(currentLine === null) currentLine = "(unknown)";
         let output = `Script "${currentFile}" panicked on line ${currentLine}: ${reason}`;
         for(const element of this.elements.slice(0, this.elements.length).reverse()) {
-            output += "\n" + `    called "${element.callRef}" - called from "${element.callFile}" on line ${element.callLine} - defined at "${element.srcFile}" on line ${element.srcLine}`;
+            output += "\n" + `    called "${element.callRef}" - called from "${element.callFile}" on line ${element.callLine} - defined in "${element.srcFile}" on line ${element.srcLine}`;
         }
         return output;
     }
