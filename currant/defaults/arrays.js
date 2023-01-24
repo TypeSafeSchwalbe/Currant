@@ -6,7 +6,7 @@ const CURRANT_STD_ARRAYS = `
         itemType: fun = f@currantArrayItemType;
 
         reverse: fun = (src: arr) -> arr {
-            if(len(src) == 0u64, <- { -> [itemType(src): 0u64, 0u8]; });
+            if(len(src) == 0u64, <- { -> [itemType(src): 0u64: none]; });
             dest: arr = [itemType(src): len(src): src[0u64]];
             for(range(0u64, len(src)), (i: u64) -> lpa {
                 dest[len(src) - 1u64 - i] = src[i];
