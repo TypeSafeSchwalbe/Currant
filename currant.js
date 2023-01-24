@@ -384,6 +384,7 @@ class CurrantNode {
             CurrantStringNode,
             CurrantMemberAccessNode,
             CurrantJsReferenceNode,
+            CurrantMemberPointerNode,
             CurrantPointerNode,
             CurrantFunctionNode,
             CurrantArrayNode,
@@ -1759,6 +1760,33 @@ class CurrantPointerNode extends CurrantNode {
 
 }
 
+class CurrantMemberPointerNode extends CurrantNode {
+
+    constructor() { super("member-pointer"); }
+
+    doParse() {
+        super.addChild(super.evalUntilLast(["dot"], true));
+        super.nextToken();
+        super.expectToken("ampersand");
+        super.nextToken();
+        super.expectToken("identifier");
+        this.refName = super.token().text;
+        super.expectEnd();
+    }
+
+    doExecute() {
+        let object = super.childValue(0);
+        if(object.type.constructor !== CurrantCustomType)
+            throw new Error(`unable to access member - object does not have member "${this.refName}"`);
+        object = object.get();
+        if(!object.variables.has(this.refName))
+            throw new Error(`unable to access member - object does not have member "${this.refName}"`);
+        this.ref = CurrantBlockNode.staticGetVariableWrapper(object.variables, object.block, this.refName);
+        return new CurrantPointerType().fromNode(this);
+    }
+
+}
+
 class CurrantPointerType extends CurrantType {
     varStorage(size) { return new Array(size); }
     instNode(node) {
@@ -2000,10 +2028,14 @@ class CurrantCustomObject {
 
     constructor(data) {
         this.variables = new Map();
+        this.block = data.block;
         for(const keyName of data.variables.keys()) {
             this.variables.set(keyName, new CurrantBlockVariableWrapperObject(data.variables.get(keyName).get().copy()));
+            if(this.variables.get(keyName).get().type.constructor === CurrantFunctionType) {
+                const functionBody = this.variables.get(keyName).get().get().body;
+                if(typeof functionBody !== "undefined") functionBody.block = this;
+            }
         }
-        this.block = data.block;
     }
 
 }

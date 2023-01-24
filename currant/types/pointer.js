@@ -18,6 +18,33 @@ class CurrantPointerNode extends CurrantNode {
 
 }
 
+class CurrantMemberPointerNode extends CurrantNode {
+
+    constructor() { super("member-pointer"); }
+
+    doParse() {
+        super.addChild(super.evalUntilLast(["dot"], true));
+        super.nextToken();
+        super.expectToken("ampersand");
+        super.nextToken();
+        super.expectToken("identifier");
+        this.refName = super.token().text;
+        super.expectEnd();
+    }
+
+    doExecute() {
+        let object = super.childValue(0);
+        if(object.type.constructor !== CurrantCustomType)
+            throw new Error(`unable to access member - object does not have member "${this.refName}"`);
+        object = object.get();
+        if(!object.variables.has(this.refName))
+            throw new Error(`unable to access member - object does not have member "${this.refName}"`);
+        this.ref = CurrantBlockNode.staticGetVariableWrapper(object.variables, object.block, this.refName);
+        return new CurrantPointerType().fromNode(this);
+    }
+
+}
+
 class CurrantPointerType extends CurrantType {
     varStorage(size) { return new Array(size); }
     instNode(node) {

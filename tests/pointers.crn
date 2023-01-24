@@ -11,3 +11,12 @@ assert(*b == 420i32);
 *b = -10i32;
 
 assert(a == -10i32);
+
+
+C: type = $(val: i32) {};
+
+c: C = C(5i32);
+d: ptr = c.&val;
+*d = 10i32;
+
+assert(c.val == 10i32);

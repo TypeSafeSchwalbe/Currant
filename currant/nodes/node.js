@@ -20,6 +20,7 @@ class CurrantNode {
             CurrantStringNode,
             CurrantMemberAccessNode,
             CurrantJsReferenceNode,
+            CurrantMemberPointerNode,
             CurrantPointerNode,
             CurrantFunctionNode,
             CurrantArrayNode,

@@ -63,10 +63,14 @@ class CurrantCustomObject {
 
     constructor(data) {
         this.variables = new Map();
+        this.block = data.block;
         for(const keyName of data.variables.keys()) {
             this.variables.set(keyName, new CurrantBlockVariableWrapperObject(data.variables.get(keyName).get().copy()));
+            if(this.variables.get(keyName).get().type.constructor === CurrantFunctionType) {
+                const functionBody = this.variables.get(keyName).get().get().body;
+                if(typeof functionBody !== "undefined") functionBody.block = this;
+            }
         }
-        this.block = data.block;
     }
 
 }
