@@ -1999,7 +1999,10 @@ class CurrantCustomType extends CurrantType {
 class CurrantCustomObject {
 
     constructor(data) {
-        this.variables = data.variables;
+        this.variables = new Map();
+        for(const keyName of data.variables.keys()) {
+            this.variables.set(keyName, new CurrantBlockVariableWrapperObject(data.variables.get(keyName).get().copy()));
+        }
         this.block = data.block;
     }
 
