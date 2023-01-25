@@ -66,10 +66,10 @@ class CurrantCustomObject {
         this.block = data.block;
         for(const keyName of data.variables.keys()) {
             this.variables.set(keyName, new CurrantBlockVariableWrapperObject(data.variables.get(keyName).get().copy()));
-            if(this.variables.get(keyName).get().type.constructor === CurrantFunctionType) {
-                // should the function member be defined as a child of data.block, make it a child of this.block
-                const functionBody = this.variables.get(keyName).get().get().body;
-                if(typeof functionBody !== "undefined" && functionBody.block === data.block) functionBody.block = this;
+            const value = this.variables.get(keyName).get().get();
+            if(value !== null && value.constructor === CurrantFunction) {
+                // should the function member be defined as a child of data, make it a child of this
+                if(value.body.block === data) value.body.block = this;
             }
         }
     }
