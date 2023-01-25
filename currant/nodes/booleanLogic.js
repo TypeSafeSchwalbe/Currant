@@ -14,8 +14,7 @@ class CurrantNegateBooleanNode extends CurrantNode {
         let value = super.childValue(0);
         if(typeof value.get() !== "boolean")
             throw new Error(`failed to negate value - "${this.children[0].src}" is not a boolean`);
-        value.value[0] = !value.value[0];
-        return value;
+        return value.type.fromValue(!value.get());
     }
 
 }
