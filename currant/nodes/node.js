@@ -69,7 +69,7 @@ class CurrantNode {
             if(this.children[childIndex] === null) instance.addChild(null);
             else instance.addChild(this.children[childIndex].copy(childBlock));
         }
-        if(typeof instance.afterCopy === "function") instance.afterCopy();
+        if(typeof instance.afterCopy === "function") instance.afterCopy(this);
         return instance;
     }
 

@@ -62,16 +62,13 @@ class CurrantCustomType extends CurrantType {
 class CurrantCustomObject {
 
     constructor(data) {
-        this.variables = new Map();
-        this.block = data.block;
-        for(const keyName of data.variables.keys()) {
-            this.variables.set(keyName, new CurrantBlockVariableWrapperObject(data.variables.get(keyName).get().copy()));
-            const value = this.variables.get(keyName).get().get();
-            if(value !== null && value.constructor === CurrantFunction) {
-                // should the function member be defined as a child of data, make it a child of this
-                if(value.body.block === data) value.body.block = this;
-            }
+        if(data instanceof CurrantCustomObject) {
+            this.funcBody = data.funcBody.copy(data.funcBody.block);
+        } else {
+            this.funcBody = data;
         }
+        this.variables = this.funcBody.variables;
+        this.block = this.funcBody.block;
     }
 
 }

@@ -433,7 +433,7 @@ class CurrantNode {
             if(this.children[childIndex] === null) instance.addChild(null);
             else instance.addChild(this.children[childIndex].copy(childBlock));
         }
-        if(typeof instance.afterCopy === "function") instance.afterCopy();
+        if(typeof instance.afterCopy === "function") instance.afterCopy(this);
         return instance;
     }
 
@@ -662,8 +662,17 @@ class CurrantBlockNode extends CurrantNode {
         this.currant = null;
     }
 
-    afterCopy() {
-        this.variables = new Map(this.variables);
+    afterCopy(copiedInstance) {
+        const oldVariables = this.variables;
+        this.variables = new Map();
+        if(typeof oldVariables === "undefined") return;
+        for(const keyName of oldVariables.keys()) {
+            this.variables.set(keyName, new CurrantBlockVariableWrapperObject(oldVariables.get(keyName).get().copy()));
+            const value = this.variables.get(keyName).get().get();
+            if(value !== null && value instanceof CurrantFunction && value.body.block === copiedInstance) {
+                value.body.block = this;
+            }
+        }
     }
 
     setRuntime(interpreter) {
@@ -2026,16 +2035,13 @@ class CurrantCustomType extends CurrantType {
 class CurrantCustomObject {
 
     constructor(data) {
-        this.variables = new Map();
-        this.block = data.block;
-        for(const keyName of data.variables.keys()) {
-            this.variables.set(keyName, new CurrantBlockVariableWrapperObject(data.variables.get(keyName).get().copy()));
-            const value = this.variables.get(keyName).get().get();
-            if(value !== null && value.constructor === CurrantFunction) {
-                // should the function member be defined as a child of data, make it a child of this
-                if(value.body.block === data) value.body.block = this;
-            }
+        if(data instanceof CurrantCustomObject) {
+            this.funcBody = data.funcBody.copy(data.funcBody.block);
+        } else {
+            this.funcBody = data;
         }
+        this.variables = this.funcBody.variables;
+        this.block = this.funcBody.block;
     }
 
 }

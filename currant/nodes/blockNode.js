@@ -7,8 +7,17 @@ class CurrantBlockNode extends CurrantNode {
         this.currant = null;
     }
 
-    afterCopy() {
-        this.variables = new Map(this.variables);
+    afterCopy(copiedInstance) {
+        const oldVariables = this.variables;
+        this.variables = new Map();
+        if(typeof oldVariables === "undefined") return;
+        for(const keyName of oldVariables.keys()) {
+            this.variables.set(keyName, new CurrantBlockVariableWrapperObject(oldVariables.get(keyName).get().copy()));
+            const value = this.variables.get(keyName).get().get();
+            if(value !== null && value instanceof CurrantFunction && value.body.block === copiedInstance) {
+                value.body.block = this;
+            }
+        }
     }
 
     setRuntime(interpreter) {
