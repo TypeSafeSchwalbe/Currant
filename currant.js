@@ -2201,38 +2201,51 @@ const CURRANT_STD_MATH = `
         F32_NaN: f32 = f@currantGetNaNF32();
         F64_NaN: f64 = f@currantGetNaNF64();
 
-        isNaNJsImpl: fun = f@currantIsNaN;
-        isNaN: fun = (x: ?) -> bool {
-            if(#x == f32 || #x == f64, <- {
-                -> isNaNJsImpl(x);
-            });
+        NUM_TYPES: arr = [type: f32, f64, i8, i16, i32, i64, u8, u16, u32, u64];
+
+        isNum: fun = (x: ?) -> bool {
+            if(#x == f32, <- { -> true });
+            if(#x == f64, <- { -> true });
+            if(#x == i8, <- { -> true });
+            if(#x == i16, <- { -> true });
+            if(#x == i32, <- { -> true });
+            if(#x == i64, <- { -> true });
+            if(#x == u8, <- { -> true });
+            if(#x == u16, <- { -> true });
+            if(#x == u32, <- { -> true });
+            if(#x == u64, <- { -> true });
             -> false;
         };
 
-        abs: fun = (x: ?) -> #x {
-            if(x < numType~0u8, <- {
-                -> numType~0u8 - x;
+        isNaNJsImpl: fun = f@currantIsNaN;
+        isNaN: fun = (x: ? => #x == f32 || #x == f64) -> bool {
+            -> isNaNJsImpl(x);
+        };
+
+        abs: fun = (x: ? => isNum(x)) -> #x {
+            if(x < #x~0u8, <- {
+                -> #x~0u8 - x;
             });
             -> x;
         };
 
-        min: fun = (a: ?, b: #a) -> #a {
+        min: fun = (a: ? => isNum(a), b: #a) -> #a {
             if(a < b, <- { -> a; });
             -> b;
         };
 
-        max: fun = (a: ?, b: #a) -> #a {
+        max: fun = (a: ? => isNum(a), b: #a) -> #a {
             if(a > b, <- { -> a; });
             -> b;
         };
 
         powJsImpl: fun = f@currantPow;
-        pow: fun = (x: ?, n: #x) -> #x {
+        pow: fun = (x: ? => isNum(x), n: #x) -> #x {
             -> powJsImpl(#x, x, n);
         };
 
         sqrtJsImpl: fun = f@currantSqrt;
-        sqrt: fun = (x: ?) -> #x {
+        sqrt: fun = (x: ? => isNum(x)) -> #x {
             -> sqrtJsImpl(#x, x);
         };
 
@@ -2242,102 +2255,102 @@ const CURRANT_STD_MATH = `
         };
 
         roundJsImpl: fun = f@currantRound;
-        round: fun = (x: ?) -> #x {
+        round: fun = (x: ? => isNum(x)) -> #x {
             -> roundJsImpl(#x, x);
         };
 
         cbrtJsImpl: fun = f@currantCbrt;
-        cbrt: fun = (x: ?) -> #x {
+        cbrt: fun = (x: ? => isNum(x)) -> #x {
             -> cbrtJsImpl(#x, x);
         };
 
         ceilJsImpl: fun = f@currantCeil;
-        ceil: fun = (x: ?) -> #x {
+        ceil: fun = (x: ? => isNum(x)) -> #x {
             -> ceilJsImpl(#x, x);
         };
 
         floorJsImpl: fun = f@currantFloor;
-        floor: fun = (x: ?) -> #x {
+        floor: fun = (x: ? => isNum(x)) -> #x {
             -> floorJsImpl(#x, x);
         };
 
         logJsImpl: fun = f@currantMathLog;
-        log: fun = (x: ?) -> #x {
+        log: fun = (x: ? => isNum(x)) -> #x {
             -> logJsImpl(#x, x);
         };
 
         log10JsImpl: fun = f@currantLog10;
-        log10: fun = (x: ?) -> #x {
+        log10: fun = (x: ? => isNum(x)) -> #x {
             -> log10JsImpl(#x, x);
         };
 
         log1pJsImpl: fun = f@currantLog1p;
-        log1p: fun = (x: ?) -> #x {
+        log1p: fun = (x: ? => isNum(x)) -> #x {
             -> log1pJsImpl(#x, x);
         };
 
         expJsImpl: fun = f@currantExp;
-        exp: fun = (x: ?) -> #x {
+        exp: fun = (x: ? => isNum(x)) -> #x {
             -> expJsImpl(#x, x);
         };
 
         expm1JsImpl: fun = f@currantExpm1;
-        expm1: fun = (x: ?) -> #x {
+        expm1: fun = (x: ? => isNum(x)) -> #x {
             -> expm1JsImpl(#x, x);
         };
 
         sinJsImpl: fun = f@currantSin;
-        sin: fun = (x: ?) -> #x {
+        sin: fun = (x: ? => isNum(x)) -> #x {
             -> sinJsImpl(#x, x);
         };
 
         cosJsImpl: fun = f@currantCos;
-        cos: fun = (x: ?) -> #x {
+        cos: fun = (x: ? => isNum(x)) -> #x {
             -> cosJsImpl(#x, x);
         };
 
         tanJsImpl: fun = f@currantTan;
-        tan: fun = (x: ?) -> #x {
+        tan: fun = (x: ? => isNum(x)) -> #x {
             -> tanJsImpl(#x, x);
         };
 
         asinJsImpl: fun = f@currantAsin;
-        asin: fun = (x: ?) -> #x {
+        asin: fun = (x: ? => isNum(x)) -> #x {
             -> asinJsImpl(#x, x);
         };
 
         acosJsImpl: fun = f@currantAcos;
-        acos: fun = (x: ?) -> #x {
+        acos: fun = (x: ? => isNum(x)) -> #x {
             -> acosJsImpl(#x, x);
         };
 
         atanJsImpl: fun = f@currantAtan;
-        atan: fun = (x: ?) -> #x {
+        atan: fun = (x: ? => isNum(x)) -> #x {
             -> atanJsImpl(#x, x);
         };
 
         sinhJsImpl: fun = f@currantSinh;
-        sinh: fun = (x: ?) -> #x {
+        sinh: fun = (x: ? => isNum(x)) -> #x {
             -> sinhJsImpl(#x, x);
         };
 
         coshJsImpl: fun = f@currantCosh;
-        cosh: fun = (x: ?) -> #x {
+        cosh: fun = (x: ? => isNum(x)) -> #x {
             -> coshJsImpl(#x, x);
         };
 
         tanhJsImpl: fun = f@currantTanh;
-        tanh: fun = (x: ?) -> #x {
+        tanh: fun = (x: ? => isNum(x)) -> #x {
             -> tanhJsImpl(#x, x);
         };
 
-        toRadians: fun = (x: ?) -> #x {
+        toRadians: fun = (x: ? => isNum(x)) -> #x {
             -> #x~(f64~x * Math.PI / 180f64);
         };
         radians: fun = toRadians;
         rad: fun = toRadians;
 
-        toDegrees: fun = (x: ?) -> #x {
+        toDegrees: fun = (x: ? => isNum(x)) -> #x {
             -> #x~(f64~x * 180f64 / Math.PI);
         };
         degrees: fun = toDegrees;
