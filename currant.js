@@ -1637,7 +1637,7 @@ class CurrantFunction extends CurrantFunctionInterface {
             this.returnType.setBlock(bodyCopy);
             resultType = this.returnType.execute();
             if(resultType instanceof CurrantVariableReference) resultType = resultType.get();
-            if(result.type.constructor !== resultType.get().constructor)
+            if(!currantCompareTypes(result.type, resultType.get()))
                 throw new Error(`function did not return value of type "${this.returnType.src}"`);
         } else {
             let nothingType = new CurrantNothingType();

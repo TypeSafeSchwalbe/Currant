@@ -1,4 +1,4 @@
-![Currant-Logo](./logo2.png)
+![Currant-Logo](./logo.png)
 
 Currant is a single-threaded programming language that runs in the browser. It has simple interoperability with JavaScript and can be easily embedded into a webpage:
 
