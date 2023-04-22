@@ -18,5 +18,6 @@ Currant is a single-threaded programming language that runs in the browser. It h
 
 Documentation for Currant is accessible [here](https://currant.netlify.app).
 
+*За хората от националната олимпиада по информационни и технологии: да, това е Куентим Бьоргер*
 
 
